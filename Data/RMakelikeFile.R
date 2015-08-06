@@ -2,7 +2,7 @@
 # F2 Nematodes
 # Load Data - Makelike File
 # Quentin Schorpp
-# 05.08.2015
+# 06.08.2015
 ###########################
 
 
@@ -17,6 +17,15 @@ fety <- spe[, which(names(spe)=="carnivore"):which(names(spe)=="omnivore")]
 
 env <- read.delim("Data/env.txt")
 env1 <- env[16:45,]
+
+spa <- env1[,c(3,5,6)]
+soil <- env1[,c(8:10)]
+soil <- cbind(soil,env1[,which(names(env1)=="pH"):which(names(env1)=="clay")])
+groups <- env1[,c(2,11,12,15)]
+climate30 <- env1[,which(names(env1)=="ata1"):which(names(env1)=="rad1")]
+climate1 <- env1[,which(names(env1)=="ata2"):which(names(env1)=="rad2")]
+mngmnt <- env1[,which(names(env1)=="soil_coverage"):which(names(env1)=="compaction")]
+
 
 env2 <- env[rep(seq_len(nrow(env)), each=3),-1]
 
@@ -34,7 +43,6 @@ indices$SR <- rowSums(fam >0)
 # rarefaction
 indices$rarefy <- vegan::rarefy(fam,90,se=F, MARGIN=1)
 
-
 # Shannon entropy
 indices$H <- vegan::diversity(fam, index="shannon")
 
@@ -51,3 +59,13 @@ indices$H1 <- exp(indices$H)
 
 # McIntosh dominance
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
+
+
+
