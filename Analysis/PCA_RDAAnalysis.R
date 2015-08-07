@@ -15,38 +15,35 @@ source("analysis/RequiredPackages.R")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# multivariate normality ####
+# Test for multivariate normality ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 fam.log <- log1p(fam)
 fam.z <- data.frame(scale(fam.log))
 
+# Shapiro Test
+fam.mnorm <- t(fam.z)
+mshapiro.test(fam.mnorm)
 
+# QQ Plots of all variables
 par(mfrow=c(5,5))
 for (i in 1:25) {
   qqnorm(fam.z[,i], xlab=colnames(fam.z[i]))
-  qqline(fam.z[,i])
-  
-  
+  qqline(fam.z[,i]) 
 }
 
+# Histrograms of all variables
 par(mfrow=c(3,4))
 for (i in 1:6) {
   hist(fam.z[,i], xlab=colnames(fam.z[i]))
 }
 summary(fam.z)
-
 par(mfrow=c(1,1))
-
-fam.mnorm <- t(fam.z)
-mshapiro.test(fam.mnorm)
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# PCA ####
+# Environmental variable selection ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+# Management
 mngmnt.pca <- rda(mngmnt[,-1], scale=T)
 summary(mngmnt.pca, display=NULL)
 ev <- mngmnt.pca$CA$eig
@@ -54,29 +51,31 @@ evplot(ev)
 cleanplot.pca(mngmnt.pca)
 mngmnt$intensity <- scores(mngmnt.pca, display="sites")[,1] # fertilisation would be a uncorrelated addition to intensity
 
-
+#Soil
 soil.pca <- rda(soil[,-c(1:3)], scale=T)
 cleanplot.pca(soil.pca)
 summary(soil.pca, display=NULL)
 ev <- soil.pca$CA$eig
 evplot(ev) # ommit: cn, silt, sand
 
+# Climate
 climate.pca <- rda(climate1, scale=T)
 cleanplot.pca(climate.pca) # ata2 + hum2
 
 climate30.pca <- rda(climate30, scale=T)
 cleanplot.pca(climate30.pca) # ata1 + prec1
 
-env.rda <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation"))
-env.rda$intensity <- mngmnt$intensity
+# Subset of (mostly) orthogonal variables
+env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation"))
+env.fin$intensity <- mngmnt$intensity
 
 env.fin.pca <- rda(env.rda[,-c(1:4)], scale=T)
 cleanplot.pca(env.fin.pca)
-
-env.rda2 <- subset(env.rda, select=c("field.ID", "age_class", "pH", "mc","ata2", "intensity"))
-
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+# partial RDA to reduce the influence eof repeated measurements ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fam.repmes <- rda(fam.hel ~ age_class + pH + mc + ata2 + n + Condition(field.ID),data=env.rda)
 
@@ -94,27 +93,15 @@ anova.cca(fam.repmes, step=100, by="axis")
 # Scaling 1
 par(mfrow=c(1,1))
 plot(fam.repmes, scaling=1, display=c("sp", "lc","cn"))
+
+# Scaling 2
 plot(fam.repmes, display=c("sp", "lc","cn"))
-
-
-cleanplot.pca(fam.rda)
-
-
-
-# partial RDA ####
-
-fam.hel <- decostand(fam,"hel")
-str(fam.hel)
-env.rda <- subset(env1, select=c("field.ID", "age_class","crop", "samcam","cn","mc","clay","ata1","pH","prec2"))
-
-
-fam.rda <- rda(fam.hel)
-cleanplot.pca(fam.rda)
-
-fam.repmes <- rda(fam.hel, env1)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# RDA after Ralf Schäfer
+
+
+# RDA after Ralf Schäfer ####
+# https://www.youtube.com/watch?v=gY_iktfpSpQ
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Here we are interested in families that have a strong relationship with the environmental gradient
@@ -231,7 +218,59 @@ set.seed(111)
 anova.cca(fam.rda, step=1000)
 # The Model is signficant
 
+# How many axes explain a significant amount of variance in the data?
+set.seed(111)
+anova.cca(fam.rda, by="axis", step=1000)
+# six axes are significant
 
 
+## Triplots ###
+
+par(mfrow=c(1,2))
+plot(fam.rda, scaling=1, main="Triplot RDA scaling 1 - wa scores")
+fam.sc <- scores(fam.rda, choices=1:2, scaling=1, display="sp")
+arrows(0,0, fam.sc[,1], fam.sc[,2], length =0, lty=1, col="red")
+# lines for species can be omitted
+
+# Scaling 1
+# How to interpret this plots?
+# Zuur et al 2007, page 211 give the following rules (content modified)
+# 1. Sites can be projected perpendicularly on the species of the explanatory lines
+# and approximately the fitted value of the site along the variable
+# 2. Distances between sites represent a two dimensional approximation of their fitted Euclidean
+# distances
+# 3. Angles between lines of species and explanatory variables reflect their correlation
+# 4. Angles between lines for species or explanatory variables do not represent correlations
+# an additional technical explanation is given in Legendre & Legendre 2012: 639-641
 
 
+# WA scores vs. LC scores
+
+# In the previous plots the position of sites are based in the weighted averages of species positions
+# There is an open debate wether the position of the sites should be better expressed as linear combinations of the variables
+# see:
+vignette("decision-vegan", package="vegan")
+
+# Scaling 1
+x11()
+plot(fam.rda, scaling=1, display=c("sp","lc", "cn"), main="Triplot RDA - scaling 1 - lc scores")
+arrows(0,0,fam.sc[,1], fam.sc[,2],length=0, lty=1, col="red")
+
+# Scaling 2
+x11()
+plot(fam.rda, scaling=2, display=c("sp","lc", "cn"), main="Triplot RDA - scaling 2 - lc scores")
+fam.sc2 <- scores(fam.rda, choices=1:2, scaling=2, display="sp")
+arrows(0,0,fam.sc2[,1], fam.sc2[,2],length=0, lty=1, col="red")
+# The rules from above still aplly for interpretation
+
+betadisper(fam.rda)
+
+# Reduce environmental variables to significant ones
+stepping <- ordiR2step(rda(fam.fin[,1:15] ~ 1 ,data=env.fin[,-c(1,3,4)]), scope=formula(fam.rda),direction="forward",pstep=1000,trace=F)
+
+anova(stepping)
+
+fam.rda <- rda(fam.fin[1:15]~ age_class + n + clay, data=env.rda[,-c(1,3,4)], scale=TRUE)
+summary(fam.rda, display=NULL)
+
+RsquareAdj(fam.rda)

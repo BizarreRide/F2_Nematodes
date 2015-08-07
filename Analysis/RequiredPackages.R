@@ -6,3 +6,4 @@
 ###########################
 
 library(vegan)
+library(faraway)
