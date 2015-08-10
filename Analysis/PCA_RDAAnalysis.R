@@ -6,17 +6,16 @@
 ###########################
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Load Data ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 source("data/RMAkeLikeFile.R")
 source("analysis/cleanplot.pca.R")
 source("analysis/evplot.R")
 source("analysis/RequiredPackages.R")
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Test for multivariate normality ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fam.log <- log1p(fam)
 fam.z <- data.frame(scale(fam.log))
 
@@ -38,11 +37,10 @@ for (i in 1:6) {
 }
 summary(fam.z)
 par(mfrow=c(1,1))
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Environmental variable selection ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Management
 mngmnt.pca <- rda(mngmnt[,-1], scale=T)
 summary(mngmnt.pca, display=NULL)
@@ -69,40 +67,14 @@ cleanplot.pca(climate30.pca) # ata1 + prec1
 env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation"))
 env.fin$intensity <- mngmnt$intensity
 
-env.fin.pca <- rda(env.rda[,-c(1:4)], scale=T)
+env.fin.pca <- rda(env.fin[,-c(1:4)], scale=T)
 cleanplot.pca(env.fin.pca)
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-# partial RDA to reduce the influence eof repeated measurements ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-fam.repmes <- rda(fam.hel ~ age_class + pH + mc + ata2 + n + Condition(field.ID),data=env.rda)
-
-stepping <- ordiR2step(rda(fam.hel ~ 1 + Condition(field.ID),data=env.rda), scope=formula(fam.repmes),direction="forward",pstep=1000,trace=F)
-
-anova(stepping)
-
-fam.repmes <- rda(fam.hel ~ age_class +  mc +  intensity + Condition(field.ID),data=env.rda2)
-
-anova.cca(fam.repmes, step=100)
-anova.cca(fam.repmes, step=100, by="axis")
-
-# Partial RDA triplots (with fitted site scores)
-
-# Scaling 1
-par(mfrow=c(1,1))
-plot(fam.repmes, scaling=1, display=c("sp", "lc","cn"))
-
-# Scaling 2
-plot(fam.repmes, display=c("sp", "lc","cn"))
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # RDA after Ralf Schäfer ####
 # https://www.youtube.com/watch?v=gY_iktfpSpQ
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Here we are interested in families that have a strong relationship with the environmental gradient
 # consequently we reove species that occur at 4 or less of the 15(30) study sites.
@@ -127,8 +99,8 @@ sort(apply(fam.fin, 2, max))
 sort(apply(fam.fin,2,sd))
 
 # now we look at the environmental variables
-env.rda <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation"))
-env.rda$intensity <- mngmnt$intensity
+env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation"))
+env.fin$intensity <- mngmnt$intensity
 # collinearity may hamper interpretation  of the RDA with respect to the relevance of individual
 # variables
 # we therfore check for collinearity
@@ -156,15 +128,15 @@ panel.cor <- function(x,y, digits=2, prefix="", cex.cor)
 }
 
 # since there are too many variables for plotting in one go, we use subsets
-pairs(env.rda[,5:10], lower.panel=panel.smooth, upper.panel=panel.cor)
-pairs(env.rda[,11:15], lower.panel=panel.smooth, upper.panel=panel.cor)
+pairs(env.fin[,5:10], lower.panel=panel.smooth, upper.panel=panel.cor)
+pairs(env.fin[,11:15], lower.panel=panel.smooth, upper.panel=panel.cor)
 
 #c and n should probably not be used together
 
 
 # we can also check the variance inflation factor
 library(faraway)
-sort(vif(env.rda[,-c(1:4)]))
+sort(vif(env.fin[,-c(1:4)]))
 # Borcard et al 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoided
 # Theres a video of Ralf schäfer, that tells about how to deal with multicollinearity in multiple regression
 
@@ -185,52 +157,110 @@ decorana(fam.hel)
 
 # Hellinger transforation decreases the axis length, however, it is not necessary here
 
-## RDA ####
+# test for Heteroscedasticity within groups
+fam.hel.d1 <- dist(fam.hel)
+fam.MHV <- betadisper(fam.hel.d1, env.fin$age_class)
+permutest(fam.MHV)
 
+
+## RDA ####
+# for each sampling campaign
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# SAMPLING CAMPAIGN 2 - AUTMUN 2012
+# ---------------------
 # If we had used Hellinger TRansformation we would not need to scale
-fam.rda <- rda(fam.fin[1:15]~., data=env.rda[,-c(1,3,4)], scale=TRUE)
-summary(fam.rda)
-# we obtain 15 RDA (constrained) and 14 PCA (unconstrained) axis,
+fam.rda1 <- rda(fam.fin[env.fin$samcam==2,] ~ ., data=env.fin[env.fin$samcam==2,-c(1,3,4,7,10,11)], scale=TRUE)
+summary(fam.rda1, display=NULL)
+
+# Reduce environmental variables to significant ones 
+stepping <- ordiR2step(rda(fam.fin[env.fin$samcam==2,] ~ 1 ,data=env.fin[env.fin$samcam==2,-c(1,3,4,7,10,11)]), scope=formula(fam.rda1),direction="both",pstep=1000,trace=F)
+
+anova(stepping)
+
+fam.rda1 <- rda(fam.fin[env.fin$samcam==2,]~ age_class + n + pH, data=env.fin[env.fin$samcam==2,], scale=TRUE)
+summary(fam.rda1, display=NULL)
+
+RsquareAdj(fam.rda1)
+
+
+# we obtain 6 RDA (constrained) and 8 PCA (unconstrained) axis,
 # Further PCA axes are not displayed, as their eigenvalues are too small and would
 # exceed the number of observations
 
-# 67% of our vriance can be constrained and be explained by explanatory variables
-# 33% can not be explained
+# 54% of our vriance can be constrained and be explained by explanatory variables
+# 46% can not be explained
+# adjustes Rsquared: 19% can be explained
+
 
 # PCA is done for the unexplained variance only! Refers to the Residuals of the data
 
-# The first two RDA axes explain 30% of the variance, this is less than 50% (indeed 45%) of the explained variability,
+# The first two RDA axes explain 34% of the variance, this is less  63% of the explained variability,
 # So are these two axes sufficient?
 
 # species scores represent the position of species in the axis in bi- or triplots
-# site scores give the coordinates of sites in the spacce of the species
+# site scores give the coordinates of sites in the space of the species
 # site constraints give the coordinates of sites in the space of the environmental variables
 # (explanatory)
 # biplot scores give the coordinates for the environmental variable arrows
 
-
 # Extraction of canonical coefficients from RDA object
-coef(fam.rda)
+coef(fam.rda1)
 
 
 # Global test of RDA result
 set.seed(111)
-anova.cca(fam.rda, step=1000)
+anova.cca(fam.rda1, step=1000)
 # The Model is signficant
 
 # How many axes explain a significant amount of variance in the data?
 set.seed(111)
-anova.cca(fam.rda, by="axis", step=1000)
-# six axes are significant
+anova.cca(fam.rda1, by="axis", step=1000)
+# two axes are significant
 
 
-## Triplots ###
+
+# SAMPLING CAMPAIGN 4 - AUTMUN 2013
+# ---------------------
+# If we had used Hellinger TRansformation we would not need to scale
+fam.rda2 <- rda(fam.fin[env.fin$samcam==4,]~., data=env.fin[env.fin$samcam==4,-c(1,3,4,7,10,11)], scale=TRUE)
+summary(fam.rda2, display=NULL)
+
+# Reduce environmental variables to significant ones 
+stepping <- ordiR2step(rda(fam.fin[env.fin$samcam==4,] ~ 1 ,data=env.fin[env.fin$samcam==4,-c(1,3,4,7,10,11)]), scope=formula(fam.rda2),direction="forward",pstep=1000,trace=F)
+
+anova(stepping)
+# NO Constrained Component!
+
+
+# Try Hellinger Distances:
+fam.rda2 <- rda(fam.hel[env.fin$samcam==4,]~., data=env.fin[env.fin$samcam==4,-c(1,3,4,7,10,11)], scale=FALSE)
+summary(fam.rda2, display=NULL)
+
+# Reduce environmental variables to significant ones 
+stepping <- ordiR2step(rda(fam.hel[env.fin$samcam==4,] ~ 1 ,data=env.fin[env.fin$samcam==4,-c(1,3,4,7,10,11)]), scope=formula(fam.rda2),direction="both",pstep=1000,trace=F)
+
+anova(stepping)
+# NO Constrained Component!
+
+# AAArrrrrghhH!!!!!!
+
+
+### Triplots ####
+
+# For Sampling campaign 2 only, s.o.
 
 par(mfrow=c(1,2))
-plot(fam.rda, scaling=1, main="Triplot RDA scaling 1 - wa scores")
-fam.sc <- scores(fam.rda, choices=1:2, scaling=1, display="sp")
+plot(fam.rda1, scaling=1, main="Triplot RDA scaling 1 - wa scores")
+fam.sc <- scores(fam.rda1, choices=1:2, scaling=1, display="sp")
 arrows(0,0, fam.sc[,1], fam.sc[,2], length =0, lty=1, col="red")
 # lines for species can be omitted
+
+plot(fam.rda1, scaling=2, main="Triplot RDA scaling 1 - wa scores")
+fam.sc2 <- scores(fam.rda1, choices=1:2, scaling=2, display="sp")
+arrows(0,0, fam.sc2[,1], fam.sc2[,2], length =0, lty=1, col="red")
+
+
 
 # Scaling 1
 # How to interpret this plots?
@@ -249,28 +279,237 @@ arrows(0,0, fam.sc[,1], fam.sc[,2], length =0, lty=1, col="red")
 # In the previous plots the position of sites are based in the weighted averages of species positions
 # There is an open debate wether the position of the sites should be better expressed as linear combinations of the variables
 # see:
-vignette("decision-vegan", package="vegan")
+# vignette("decision-vegan", package="vegan")
 
 # Scaling 1
 x11()
-plot(fam.rda, scaling=1, display=c("sp","lc", "cn"), main="Triplot RDA - scaling 1 - lc scores")
+plot(fam.rda1, scaling=1, display=c("sp","lc", "cn"), main="Triplot RDA - scaling 1 - lc scores")
 arrows(0,0,fam.sc[,1], fam.sc[,2],length=0, lty=1, col="red")
 
 # Scaling 2
 x11()
-plot(fam.rda, scaling=2, display=c("sp","lc", "cn"), main="Triplot RDA - scaling 2 - lc scores")
-fam.sc2 <- scores(fam.rda, choices=1:2, scaling=2, display="sp")
+plot(fam.rda1, scaling=2, display=c("sp","lc", "cn"), main="Triplot RDA - scaling 2 - lc scores")
+fam.sc2 <- scores(fam.rda1, choices=1:2, scaling=2, display="sp")
 arrows(0,0,fam.sc2[,1], fam.sc2[,2],length=0, lty=1, col="red")
 # The rules from above still aplly for interpretation
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-betadisper(fam.rda)
 
-# Reduce environmental variables to significant ones
-stepping <- ordiR2step(rda(fam.fin[,1:15] ~ 1 ,data=env.fin[,-c(1,3,4)]), scope=formula(fam.rda),direction="forward",pstep=1000,trace=F)
+
+# partial RDA #### 
+# to eliminate the influence of repeated measurements 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fam.repmes <- rda(fam.hel ~ . + Condition(field.ID),data=env.fin[,-c(3,7)])
+
+stepping <- ordiR2step(rda(fam.hel ~ 1 + Condition(field.ID),data=env.fin), scope=formula(fam.repmes),direction="both",pstep=1000,trace=F)
 
 anova(stepping)
 
-fam.rda <- rda(fam.fin[1:15]~ age_class + n + clay, data=env.rda[,-c(1,3,4)], scale=TRUE)
-summary(fam.rda, display=NULL)
+fam.repmes <- rda(fam.hel ~ age_class + n + mc +  Condition(field.ID),  data=env.fin[,-c(3,7)])
+summary(fam.repmes, display=NULL)
+summary(fam.repmes)
 
-RsquareAdj(fam.rda)
+RsquareAdj(fam.repmes)
+
+# We obtain 6 RDa axes and 15 PCA axis
+# Further PCA axes are not displayed, as their eigenvalues are too small and would
+# exceed the number of observations
+
+# 10% of variance is explained by condition 
+# 42% of our vriance can be constrained and be explained by explanatory variables
+# 48% can not be explained
+# adjustes Rsquared: 30% can be explained
+
+
+# PCA is done for the unexplained variance only! Refers to the Residuals of the data
+
+# The first two RDA axes explain 36% of the variance, this is less  86% of the explained variability,
+# So are these two axes sufficient?
+
+# species scores represent the position of species in the axis in bi- or triplots
+# site scores give the coordinates of sites in the space of the species
+# site constraints give the coordinates of sites in the space of the environmental variables
+# (explanatory)
+# biplot scores give the coordinates for the environmental variable arrows
+
+# Extraction of canonical coefficients from RDA object
+coef(fam.repmes)
+
+
+anova.cca(fam.repmes, step=100)
+anova.cca(fam.repmes, step=100, by="axis")
+# Three Axis are significant
+
+
+# Partial RDA triplots (with fitted site scores)
+
+plot(fam.repmes, scaling=1,display=c("sp","lc", "cn"), main="Triplot RDA - scaling 1 - lc scores")
+plot(fam.repmes, scaling=2,display=c("sp","lc", "cn"), main="Triplot RDA - scaling 2 - lc scores")
+
+plot(fam.repmes, scaling=1, main="Triplot RDA - scaling 1 - wa scores")
+plot(fam.repmes, scaling=2, main="Triplot RDA - scaling 2 - wa scores")
+
+plot(fam.repmes, type="n")
+ordiellipse(fam.repmes, env.fin$age_class)
+points(fam.repmes, col=env.fin$age_class)
+
+plot(fam.repmes, type="n", scaling=2)
+ordispider(fam.repmes, env.fin$age_class)
+ordihull(fam.repmes, env.fin$age_class)
+points(fam.repmes, col=env.fin$age_class)
+
+
+# With gplot2
+
+fam.rm.sc1 <- scores(fam.repmes, display=c("sp", "lc","cn", "bp"), scaling=1)
+fam.rm.sc1
+fam.rm.sc2 <- scores(fam.repmes, display=c("sp", "lc","cn", "bp"), scaling=2)
+
+# age_class centroids
+ac.cid1 <- data.frame(fam.rm.sc1$centroids)
+ac.cid1$txt <- c("C.mays", "S.p. - young", "S.p. - int1", "S.p. - int2", "S.p. - old")
+ac.cid2 <- data.frame(fam.rm.sc2$centroids)
+ac.cid2$txt <- c("C.mays", "S.p. - young", "S.p. - int1", "S.p. - int2", "S.p. - old")
+
+
+# species
+spec.cid1 <- data.frame(fam.rm.sc1$species)
+spec.cid1$txt <- rownames(spec.cid1)
+spec.cid2 <- data.frame(fam.rm.sc2$species)
+spec.cid2$txt <- rownames(spec.cid2) 
+# you can also put label = rownames() etc in the ggplot code. 
+# But sometimes you may want it in a column for later
+
+# arrows for continous environmental
+env.ar1 <- data.frame(fam.rm.sc1$biplot)
+env.ar1$txt <- rownames(env.ar1)
+env.ar2 <- data.frame(fam.rm.sc2$biplot)
+env.ar2$txt <- rownames(env.ar2)
+
+mult <- attributes(scores(fam.repmes))$const
+
+#sites
+site_scores1 <- data.frame(scores(fam.repmes, scaling=1)$sites)
+site_scores1$age_class <- env.fin$age_class
+
+site_scores2 <- data.frame(scores(fam.repmes, scaling=2)$sites)
+site_scores2$age_class <- env.fin$age_class
+
+# site constraints 
+site_constraints1 <- data.frame(fam.rm.sc1$constraints)
+site_constraints1$age_class <- env.fin$age_class
+site_constraints2 <- data.frame(fam.rm.sc2$constraints)
+site_constraints2$age_class <- env.fin$age_class
+
+
+#sc.mean=aggregate(site_scores[,1:2],list(group=site_scores$age_class),mean)
+
+df_ell1.1 <- data.frame()
+for(g in levels(site_scores1$age_class)){
+  df_ell1.1 <- rbind(df_ell1.1, cbind(as.data.frame(with(site_scores1[site_scores1$age_class==g,],
+                                                   veganCovEllipse(cov.wt(cbind(RDA1,RDA2),wt=rep(1/length(RDA1),length(RDA1)))$cov,center=c(mean(RDA1),mean(RDA2)))))
+                                ,age_class=g))
+}
+
+df_ell1.2 <- data.frame()
+for(g in levels(site_constraints1$age_class)){
+  df_ell1.2 <- rbind(df_ell1.2, cbind(as.data.frame(with(site_constraints1[site_constraints1$age_class==g,],
+                                                   veganCovEllipse(cov.wt(cbind(RDA1,RDA2),wt=rep(1/length(RDA1),length(RDA1)))$cov,center=c(mean(RDA1),mean(RDA2)))))
+                                ,age_class=g))
+}
+
+
+df_ell2.1 <- data.frame()
+for(g in levels(site_scores2$age_class)){
+  df_ell2.1 <- rbind(df_ell2.1, cbind(as.data.frame(with(site_scores2[site_scores2$age_class==g,],
+                                                   veganCovEllipse(cov.wt(cbind(RDA1,RDA2),wt=rep(1/length(RDA1),length(RDA1)))$cov,center=c(mean(RDA1),mean(RDA2)))))
+                                ,age_class=g))
+}
+
+df_ell2.2 <- data.frame()
+for(g in levels(site_constraints2$age_class)){
+  df_ell2.2 <- rbind(df_ell2.2, cbind(as.data.frame(with(site_constraints2[site_constraints2$age_class==g,],
+                                                   veganCovEllipse(cov.wt(cbind(RDA1,RDA2),wt=rep(1/length(RDA1),length(RDA1)))$cov,center=c(mean(RDA1),mean(RDA2)))))
+                                ,age_class=g))
+}
+
+
+# Scaling 1
+ggplot(ac.cid1, aes(x = RDA1, y = RDA2))+
+  geom_text(aes(label = txt),fontface="italic", cex=3)+ # label tells geom_text which text you want to plot
+  geom_point(pch=17, size=5, col="red")+ # label tells geom_text which text you want to plot
+  geom_text(data = spec.cid1, aes(label = txt), colour = "orange") +
+  coord_cartesian(y=c(1.2*min(spec.cid1$RDA2),1.2*max(spec.cid1$RDA2)), x=c(1.2*min(spec.cid1$RDA1),1.3*max(spec.cid1$RDA1))) + 
+                    #NB note that this is a convenience wrapper and may cut data out of your plot
+                    #important if you are calculating stats in the plot - these will be excluded
+  geom_segment(data = env.ar1[-c(1:4),] , aes(x = 0, xend = mult * RDA1, y = 0, yend = mult * RDA2),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "light blue") + #grid is required for arrow to work.
+  geom_text(data = env.ar1[-c(1:4),] , aes(x= (mult + mult/20) * RDA1, y = (mult + mult/20) * RDA2,  label = env.ar1[-c(1:4),]$txt), size = 5, hjust = 0.5) +
+                               # we add 10% to the text to push it slightly out from arrows
+                               # otherwise you could use hjust and vjust. I prefer this option
+  #geom_point(data=site_scores1, aes(x = RDA1, y = RDA2, shape=env.fin$age_class)) +
+  geom_point(data=site_constraints1, aes(x = RDA1, y = RDA2, shape=env.fin$age_class)) +
+  #geom_path(data=df_ell1.1, aes(x=RDA1, y=RDA2, colour=age_class), size=0.5, linetype=2) +
+  geom_path(data=df_ell1.2, aes(x=RDA1, y=RDA2, colour=age_class), size=0.5, linetype=2) +
+  #geom_text(data = site_scores, aes(x = RDA1, y = RDA2, label = rownames(site_scores)), size = 3, colour = "grey50")+    
+  theme_bw()
+
+# use env.ar1[-c(1:4),]  to ommit factor levels
+
+
+
+#Scaling 2
+ggplot(ac.cid2, aes(x = RDA1, y = RDA2))+
+  geom_text(aes(label = txt),fontface="italic", cex=3)+ # label tells geom_text which text you want to plot
+  geom_point(pch=17, size=5, col="red")+ # label tells geom_text which text you want to plot
+  geom_text(data = spec.cid2, aes(label = txt), colour = "orange") +
+  coord_cartesian(y=c(1.2*mult*min(env.ar2$RDA2),1.2*max(site_scores2$RDA2)), x=c(1.2*mult*min(env.ar2$RDA1),1.3*max(site_scores2$RDA1))) + 
+  #NB note that this is a convenience wrapper and may cut data out of your plot
+  #important if you are calculating stats in the plot - these will be excluded
+  geom_segment(data = env.ar2[-c(1:4),], aes(x = 0, xend = mult * RDA1, y = 0, yend = mult * RDA2),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "light blue") + #grid is required for arrow to work.
+  geom_text(data = env.ar2[-c(1:4),], aes(x= (mult + mult/20) * RDA1, y = (mult + mult/20) * RDA2,  label = env.ar2[-c(1:4),]$txt), size = 5, hjust = 0.5) +
+  # we add 10% to the text to push it slightly out from arrows
+  # otherwise you could use hjust and vjust. I prefer this option
+  #geom_point(data=site_scores2, aes(x = RDA1, y = RDA2, shape=env.fin$age_class)) +
+  geom_point(data=site_constraints2, aes(x = RDA1, y = RDA2, shape=env.fin$age_class)) +
+  #geom_path(data=df_ell2.1, aes(x=RDA1, y=RDA2, colour=age_class), size=0.5, linetype=2) +
+  geom_path(data=df_ell2.2, aes(x=RDA1, y=RDA2, colour=age_class), size=0.5, linetype=2) +
+  #geom_text(data = site_scores, aes(x = RDA1, y = RDA2, label = rownames(site_scores)), size = 3, colour = "grey50")+    
+  theme_bw()
+
+
+
+
+# Scaling 1
+par(mfrow=c(1,1))
+plot(fam.repmes, scaling=1, display=c("sp", "lc","cn"))
+
+# Scaling 2
+plot(fam.repmes, display=c("sp", "lc","cn"))
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+## partial db-RDA ####
+# to reduce the influence of repeated measurements and use the Bray Curtis distance 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+fam.fin2 <- fam.fin[!env.fin$crop=="Maize",]
+env.fin2 <- env.fin[!env.fin$crop=="Maize",-c(3,7)]
+
+fam.db.repmes <- capscale(fam.fin2 ~ . + Condition(field.ID), distance="bray", data=env.fin2, scale=TRUE, add=TRUE)
+
+stepping <- ordiR2step(capscale(fam.fin2 ~ 1 + Condition(field.ID),distance="bray", data=env.fin2, add=TRUE), scope=formula(fam.db.repmes),direction="forward",pstep=1000,trace=F)
+
+anova(stepping)
+
+fam.db.repmes <- capscale(fam.fin2 ~ age_class + n + mc + Condition(field.ID), distance="bray", data=env.fin2, scale=TRUE, add=TRUE)
+
+anova(fam.db.repmes, step=1000, perm.max=1000)
+anova(fam.db.repmes, by="axis", step=1000, perm.max=1000)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+fam.fin[!env.fin$crop=="Maize",]
+
