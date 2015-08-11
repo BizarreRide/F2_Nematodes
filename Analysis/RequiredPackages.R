@@ -5,11 +5,18 @@
 # 06.08.2015
 ###########################
 
+# Packages:
 library(vegan)
 library(faraway)
 library(ggplot2)
 library(grid)
 library(ggbiplot)
+library(multcomp)
+library(nlme)
+
+# Functions:
+source("analysis/cleanplot.pca.R")
+source("analysis/evplot.R")
 
 veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100) 
 {

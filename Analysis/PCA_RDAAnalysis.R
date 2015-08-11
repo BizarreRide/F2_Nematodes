@@ -9,9 +9,6 @@
 # Load Data ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 source("data/RMAkeLikeFile.R")
-source("analysis/cleanplot.pca.R")
-source("analysis/evplot.R")
-source("analysis/RequiredPackages.R")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Test for multivariate normality ####
@@ -74,6 +71,8 @@ cleanplot.pca(env.fin.pca)
 
 # RDA after Ralf Schäfer ####
 # https://www.youtube.com/watch?v=gY_iktfpSpQ
+
+## 1. Data Preparation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Here we are interested in families that have a strong relationship with the environmental gradient
@@ -162,13 +161,12 @@ fam.hel.d1 <- dist(fam.hel)
 fam.MHV <- betadisper(fam.hel.d1, env.fin$age_class)
 permutest(fam.MHV)
 
-
-## RDA ####
-# for each sampling campaign
+## 2. RDA ####
+### for each sampling campaign ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# SAMPLING CAMPAIGN 2 - AUTMUN 2012
-# ---------------------
+# SAMPLING CAMPAIGN 2 - AUTMUN 2012 ---------------------
+
 # If we had used Hellinger TRansformation we would not need to scale
 fam.rda1 <- rda(fam.fin[env.fin$samcam==2,] ~ ., data=env.fin[env.fin$samcam==2,-c(1,3,4,7,10,11)], scale=TRUE)
 summary(fam.rda1, display=NULL)
@@ -218,10 +216,8 @@ set.seed(111)
 anova.cca(fam.rda1, by="axis", step=1000)
 # two axes are significant
 
+# SAMPLING CAMPAIGN 4 - AUTMUN 2013  ---------------------
 
-
-# SAMPLING CAMPAIGN 4 - AUTMUN 2013
-# ---------------------
 # If we had used Hellinger TRansformation we would not need to scale
 fam.rda2 <- rda(fam.fin[env.fin$samcam==4,]~., data=env.fin[env.fin$samcam==4,-c(1,3,4,7,10,11)], scale=TRUE)
 summary(fam.rda2, display=NULL)
@@ -245,8 +241,7 @@ anova(stepping)
 
 # AAArrrrrghhH!!!!!!
 
-
-### Triplots ####
+# Triplots ####
 
 # For Sampling campaign 2 only, s.o.
 
@@ -295,8 +290,7 @@ arrows(0,0,fam.sc2[,1], fam.sc2[,2],length=0, lty=1, col="red")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-
-# partial RDA #### 
+## 3. partial tb-RDA #### 
 # to eliminate the influence of repeated measurements 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fam.repmes <- rda(fam.hel ~ . + Condition(field.ID),data=env.fin[,-c(3,7)])
@@ -489,27 +483,39 @@ plot(fam.repmes, scaling=1, display=c("sp", "lc","cn"))
 plot(fam.repmes, display=c("sp", "lc","cn"))
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-
-## partial db-RDA ####
+## 4. partial db-RDA ####
 # to reduce the influence of repeated measurements and use the Bray Curtis distance 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fam.fin2 <- fam.fin[!env.fin$crop=="Maize",]
-env.fin2 <- env.fin[!env.fin$crop=="Maize",-c(3,7)]
+env.fin.db <- env.fin[,-c(7,10,11)] 
 
-fam.db.repmes <- capscale(fam.fin2 ~ . + Condition(field.ID), distance="bray", data=env.fin2, scale=TRUE, add=TRUE)
+fam.db.repmes <- capscale(fam.fin ~ . + Condition(field.ID), distance="bray", data=env.fin.db, add=T)
 
-stepping <- ordiR2step(capscale(fam.fin2 ~ 1 + Condition(field.ID),distance="bray", data=env.fin2, add=TRUE), scope=formula(fam.db.repmes),direction="forward",pstep=1000,trace=F)
-
+stepping <- ordiR2step(capscale(fam.fin ~ 1 + Condition(field.ID),distance="bray", data=env.fin.db, add=T), scope=formula(fam.db.repmes),direction="both",pstep=1000,trace=F)
 anova(stepping)
 
-fam.db.repmes <- capscale(fam.fin2 ~ age_class + n + mc + Condition(field.ID), distance="bray", data=env.fin2, scale=TRUE, add=TRUE)
+fam.db.repmes <- capscale(fam.fin ~ age_class + n + clay + Condition(field.ID), distance="bray", data=env.fin.db, add=TRUE)
+summary(fam.db.repmes, display=NULL)
 
 anova(fam.db.repmes, step=1000, perm.max=1000)
 anova(fam.db.repmes, by="axis", step=1000, perm.max=1000)
+# 2 axes are significant
+
+
+
+
+#Triplots:
+x11()
+par(mfrow=c(1,2))
+plot(fam.db.repmes, scaling=1,display=c("sp","lc", "cn"), main="Triplot RDA - scaling 1 - lc scores")
+plot(fam.db.repmes, scaling=2,display=c("sp","lc", "cn"), main="Triplot RDA - scaling 2 - lc scores")
+
+x11()
+par(mfrow=c(1,2))
+plot(fam.db.repmes, scaling=1, main="Triplot RDA - scaling 1 - wa scores")
+plot(fam.db.repmes, scaling=2, main="Triplot RDA - scaling 2 - wa scores")
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fam.fin[!env.fin$crop=="Maize",]
+
 
