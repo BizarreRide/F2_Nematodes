@@ -10,7 +10,7 @@ library(vegan)
 library(faraway)
 library(ggplot2)
 library(grid)
-library(ggbiplot)
+#library(ggbiplot)
 library(multcomp)
 library(nlme)
 

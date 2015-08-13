@@ -10,19 +10,39 @@
 source("data/RMAkeLikeFile.R")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# ANalysis of Nematode Indices
+
+# Data processing
+indices2 <- cbind(indices,env.fin)
+indices2$samcam <- as.factor(indices2$samcam)
+indices2$field.ID <- as.ordered(indices2$field.ID)
+str(indices2)
+
+
+# create interaction factor for interaction between age_class and samcam, 
+# to see if age_class effects stay constant
 env.fin$agsam <- with(env.fin, interaction(age_class,samcam))
 
 
-# model formula: y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
 
+# model formula: y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
+# model formula2: y ~ age + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
+
+
+# Test for Heteroscedasticity:
 for (i in 1:18) {
- x <-  fligner.test(indices[,i] ~ with(env.fin, interaction(age_class,samcam)))
+ x <-  fligner.test(indices[,i] ~ env.fin$agsam)
  print(x)
 }
 
 
+# Repeated measurments ANOVA 
+# create Matrix to extract F-Values
 f.stats <- matrix(NA,12,19)
+# create Matrix to extract F-Values
 p.stats <- matrix(NA,12,19)
+
+# rmANOVAs
 for (i in 1:18) {
   x <-  aov(indices[,i] ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID), env.fin)
   print(names(indices[i]))
@@ -38,30 +58,22 @@ colnames(f.stats)[2:19] <- colnames(p.stats)[2:19] <- colnames(indices)
 colnames(f.stats)[1] <- colnames(p.stats)[1] <- "Env"
 
 
-aggregate(indices,list(env.fin$age_class),mean)
-
-a <- aggregate(indices,list(env.fin$age_class,env.fin$field.ID),mean)
-a <- aggregate(a, list(a$Group.1),mean)
-a
 
 # TukeyHSD test
 
-for(i in 1:6) { #-- Create objects  'r.1', 'r.2', ... 'r.6' --
-  nam <- paste("o", i, sep = ".")
-  assign(nam, x)
-}
-
-for (i in 1:18){
-  df <- get(paste(i,"rmAOV",names(indices[i]), sep = "."))
+for (i in 1:18) {
+  df <- get(paste("rmAOV",i,names(indices[i]), sep = "."))
   x <- TukeyHSD(df)
-  print(x)
-}
+  print(cld(x))
+  }
+
+# No Tukey Tests for aov objects
 
 
-indices2 <- cbind(indices,env.fin)
 
-f.stats.lme <- matrix(NA,12,19)
-p.stats.lme <- matrix(NA,12,19)
+# Repeat with glm
+f.stats.lme <- matrix(NA,12,20)
+p.stats.lme <- matrix(NA,12,20)
 
 for(i in 1:18) {
   indices2$x <- indices2[,i]
@@ -69,81 +81,67 @@ for(i in 1:18) {
   print(summary(model))
   nam <- paste("lme",i,names(indices[i]), sep = ".")
   assign(nam, model)
-  f.stats.lme[,i+1] <- round(anova(model)$"F-value",2)
-  p.stats.lme[,i+1] <- round(anova(model)$"p-value",3)
+  f.stats.lme[,i+2] <- round(Anova(model, type = "III")$"Chisq",2)
+  p.stats.lme[,i+2] <- round(Anova(model, type = "III")$"Pr(>Chisq)",3)
 }
+f.stats.lme[,1] <- p.stats.lme[,1]  <- row.names(Anova(model, type="III"))
+f.stats.lme[,2] <- p.stats.lme[,2]  <- Anova(model, type = "III")$"Df"
+colnames(f.stats.lme)[3:20] <- colnames(p.stats.lme)[3:20] <- colnames(indices)
+colnames(f.stats.lme)[1] <- colnames(p.stats.lme)[1] <- "Env"
+colnames(f.stats.lme)[2] <- colnames(p.stats.lme)[2] <- "Df"
 
-anova(lme.1.N)$"F-value"
-anova(lme.1.N)$"p-value"
+write.csv(p.stats.lme, file="p-Werte.csv")
+write.csv(f.stats.lme, file="Chi2-Werte.csv")
 
-Letters <- matrix(NA,5,18)
+Letters <- matrix(NA,10,18)
 for(i in 1:18) {
   indices2$x <- indices2[,i]
-  model <- lme(x ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID, data=indices2)
-  x <- summary(glht(model, linfct=mcp(age_class="Tukey")), test = adjusted(type = "fdr"))
+  model <- lme(x ~ agsam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID, data=indices2)
+  x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "fdr"))
   nam <- paste("glht",i,names(indices[i]), sep = ".")
   assign(nam, x)
   x <- cld(x)$mcletters
   xx <- x$Letters
   Letters[,i] <- xx
-  row.names(Letters) <- levels(env.fin$age_class)
+  row.names(Letters) <- levels(env.fin$agsam)
 }
+colnames(Letters) <- colnames(indices)
+write.csv(Letters, file="Letters.csv")
 
-summary(glht.1.N)
 
+model <- lme(NCR ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID,data=indices2)
+Anova(model)
 
-ggplot(indices2, aes(x=age_class, y=N)) + 
-  facet_grid(. ~ samcam) +
-  stat_summary(fun.data = 'mean_sdl', geom = 'errorbar', width = 0.2, size = 1) +
-  stat_summary(fun.y = mean, geom = 'bar', size = 1, color = 'black') +
-  stat_summary(fun.y = mean, geom = 'line', size = 1, color = 'red') +
-  coord_cartesian( y=c(0,150))
- 
+model <- lme(NCR ~ agsam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID,data=indices2)
+Anova(model)
 
-indices3 <- aggregate(indices, list(age_class=indices2$age_class, samcam=indices2$samcam), mean)
-indices3.sd <- aggregate(indices, list(age_class=indices2$age_class, samcam=indices2$samcam), sd)
-
-ggplot(indices3, aes(x=age_class, y=N)) + 
-  facet_grid(. ~ samcam) +
-  geom_bar(stat="identity") +
-  geom_errorbar(data = indices3.sd, aes(y = indices3$N, ymin = indices3$N - N, ymax = indices3$N + N),
-                width = 0.3, size = 1) +
-  coord_cartesian( y=c(0,150))
-
+indices2[,12]
+indices2$NCR
+# Plots
 
 se <- function(x) {
   return(c(ymin=(mean(x) - (sd(x)/sqrt(length(x)))), ymax=(mean(x) +
                                                              (sd(x)/sqrt(length(x))))))
 }
 
-gg_list <- list()
-gg_list[[i]]  <-
-  
-  
-for (i in 1:18) {
-  nam <- paste("Plot",i, sep = ".")
-  gg_list[[i]]  <- g <-  print(ggplot(indices2, aes(x = age_class, y = indices2[,i])) +
-    stat_summary(fun.data = 'se', geom = 'errorbar', width = 0.2, size = 1) + 
-    #stat_summary(fun.y = mean, geom = 'point', size = 3, color = 'red') +
-    stat_summary(fun.y = mean, geom = 'bar', size = 1, color = 'gray20', fill="lightpink4", alpha=1/3) +
-    facet_wrap(~ samcam) +
-    ggtitle(names(indices2[i])) +
-    theme_bw())
-    assign(nam, g)
-}
+require(reshape2)
+indices.melt <- melt(indices2, id.vars=19:35)
+g <- ggplot(indices.melt, aes(x = age_class, y = value)) +
+  stat_summary(fun.data = 'se', geom = 'errorbar', width = 0.2, size = 1) + 
+  #stat_summary(fun.y = mean, geom = 'point', size = 3, color = 'red') +
+  stat_summary(fun.y = mean, geom = 'bar', size = 1, color = 'gray20', fill="lightpink4", alpha=1/3) +
+  facet_grid( ~ samcam) +
+  ylab(levels(variable)) +
+  #facet_wrap(~ variable, scales="free") +
+  theme_bw()
 
-do.call(gridExtra::grid.arrange, gg_list)
+pl = plyr::dlply(indices.melt, "variable", `%+%`, e1 = g)
 
-Plot.1
-Plot.2
-
-Plot.4
-
-gg_list[[2]]
+do.call(gridExtra::grid.arrange, pl)
+do.call(gridExtra::grid.arrange, pl[c(4,7,15,16,17,18)])
 
 
-i=6
 
 
-g
+
 
