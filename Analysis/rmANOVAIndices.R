@@ -91,3 +91,59 @@ for(i in 1:18) {
 
 summary(glht.1.N)
 
+
+ggplot(indices2, aes(x=age_class, y=N)) + 
+  facet_grid(. ~ samcam) +
+  stat_summary(fun.data = 'mean_sdl', geom = 'errorbar', width = 0.2, size = 1) +
+  stat_summary(fun.y = mean, geom = 'bar', size = 1, color = 'black') +
+  stat_summary(fun.y = mean, geom = 'line', size = 1, color = 'red') +
+  coord_cartesian( y=c(0,150))
+ 
+
+indices3 <- aggregate(indices, list(age_class=indices2$age_class, samcam=indices2$samcam), mean)
+indices3.sd <- aggregate(indices, list(age_class=indices2$age_class, samcam=indices2$samcam), sd)
+
+ggplot(indices3, aes(x=age_class, y=N)) + 
+  facet_grid(. ~ samcam) +
+  geom_bar(stat="identity") +
+  geom_errorbar(data = indices3.sd, aes(y = indices3$N, ymin = indices3$N - N, ymax = indices3$N + N),
+                width = 0.3, size = 1) +
+  coord_cartesian( y=c(0,150))
+
+
+se <- function(x) {
+  return(c(ymin=(mean(x) - (sd(x)/sqrt(length(x)))), ymax=(mean(x) +
+                                                             (sd(x)/sqrt(length(x))))))
+}
+
+gg_list <- list()
+gg_list[[i]]  <-
+  
+  
+for (i in 1:18) {
+  nam <- paste("Plot",i, sep = ".")
+  gg_list[[i]]  <- g <-  print(ggplot(indices2, aes(x = age_class, y = indices2[,i])) +
+    stat_summary(fun.data = 'se', geom = 'errorbar', width = 0.2, size = 1) + 
+    #stat_summary(fun.y = mean, geom = 'point', size = 3, color = 'red') +
+    stat_summary(fun.y = mean, geom = 'bar', size = 1, color = 'gray20', fill="lightpink4", alpha=1/3) +
+    facet_wrap(~ samcam) +
+    ggtitle(names(indices2[i])) +
+    theme_bw())
+    assign(nam, g)
+}
+
+do.call(gridExtra::grid.arrange, gg_list)
+
+Plot.1
+Plot.2
+
+Plot.4
+
+gg_list[[2]]
+
+
+i=6
+
+
+g
+
