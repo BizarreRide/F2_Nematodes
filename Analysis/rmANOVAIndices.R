@@ -126,22 +126,37 @@ se <- function(x) {
 
 require(reshape2)
 indices.melt <- melt(indices2, id.vars=19:35)
-g <- ggplot(indices.melt, aes(x = age_class, y = value)) +
+g1 <- ggplot(indices.melt, aes(x = age_class, y = value)) +
   stat_summary(fun.data = 'se', geom = 'errorbar', width = 0.2, size = 1) + 
   #stat_summary(fun.y = mean, geom = 'point', size = 3, color = 'red') +
   stat_summary(fun.y = mean, geom = 'bar', size = 1, color = 'gray20', fill="lightpink4", alpha=1/3) +
   facet_grid( ~ samcam) +
-  ylab(levels(variable)) +
+  #ylab(levels(variable)) +
   #facet_wrap(~ variable, scales="free") +
   theme_bw()
 
-pl = plyr::dlply(indices.melt, "variable", `%+%`, e1 = g)
+pl1 = plyr::dlply(indices.melt, "variable", `%+%`, e1 = g1)
+pl1$PPI
 
 do.call(gridExtra::grid.arrange, pl)
 do.call(gridExtra::grid.arrange, pl[c(4,7,15,16,17,18)])
 
 
+fety2 <- cbind(fety,env.fin)
+require(reshape2)
+fety.melt <- melt(fety2, id.vars=6:21)
+g2 <- ggplot(fety.melt, aes(x = age_class, y = value)) +
+  stat_summary(fun.data = 'se', geom = 'errorbar', width = 0.2, size = 1) + 
+  #stat_summary(fun.y = mean, geom = 'point', size = 3, color = 'red') +
+  stat_summary(fun.y = mean, geom = 'bar', size = 1, color = 'gray20', fill="lightpink4", alpha=1/3) +
+  facet_grid( ~ samcam) +
+  #ylab() +
+  #facet_wrap(~ variable, scales="free") +
+  theme_bw()
 
+pl2 = plyr::dlply(fety.melt, "variable", `%+%`, e1 = g2)
+
+do.call(gridExtra::grid.arrange, pl2)
 
 
 
