@@ -10,13 +10,20 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Community Data (Family level)
 spe <- read.delim("Data/spe.txt")
+str(spe)
+spe$samcam <- as.factor(spe$samcam)
+spe$field.ID <- as.factor(spe$field.ID)
 
 indices <- spe[,which(names(spe)=="N"):47] # Nematode Indices - without gneral diversity indices (besides total abundance N)
 fam <- spe[, which(names(spe)=="Aphelenchidae"):which(names(spe)=="Pratylenchidae")]
 fety <- spe[, which(names(spe)=="carnivore"):which(names(spe)=="omnivore")]
 
 env <- read.delim("Data/env.txt")
-env1 <- env[16:45,]
+str(env)
+env$samcam <- as.factor(env$samcam)
+env$field.ID <- as.factor(env$field.ID)
+
+env1 <- droplevels(env[16:45,])
 
 spa <- env1[,c(3,5,6)]
 soil <- env1[,c(8:10)]
@@ -91,6 +98,9 @@ env.fin$intensity <- mngmnt$intensity
 
 env.fin.pca <- rda(env.fin[,-c(1:4)], scale=T)
 cleanplot.pca(env.fin.pca)
+
+par(mfrow=c(1,1))
+dev.off()
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

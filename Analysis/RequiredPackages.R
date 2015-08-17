@@ -13,6 +13,7 @@ library(grid)
 #library(ggbiplot)
 library(multcomp)
 library(nlme)
+library(car)
 
 # Functions:
 source("analysis/cleanplot.pca.R")
