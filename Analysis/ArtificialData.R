@@ -1,6 +1,6 @@
 
 
-# Create an artificial dataset as reproduceible example
+# Create an artificial dataset as reproducible example
 spe <- matrix(NA,30,15)
 colnames(spe) <- paste("Sp",c(1:15), sep=".")
 I <- c(29,15,2,2,1,22,18,75,36,2,1,11,12,2,5,5,7,3,2,3,52,1,63,76,7) # max. observed
@@ -52,7 +52,7 @@ env$temp <- env$temp + 0.07*spe[,5]*env$temp
 
 spe.db.repmes <- capscale(spe ~ . + Condition(field.ID), distance="bray", data=env, add=T)
 summary(spe.db.repmes)
-stepping <- ordiR2step(capscale(spe~ 1 + Condition(field.ID),distance="bray", data=env, add=T), scope=formula(spe.db.repmes),direction="forward",pstep=1000,trace=F)
+stepping <- ordiR2step(capscale(spe ~ 1 + Condition(field.ID),distance="bray", data=env, add=T), scope=formula(spe.db.repmes),direction="forward",pstep=1000,trace=F)
 anova(stepping)
 
 spe.db.repmes <- capscale(spe ~ age_class + n + temp + Condition(field.ID), distance="bray", data=env, add=TRUE)
