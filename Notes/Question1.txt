@@ -1,0 +1,92 @@
+I analyse my data with capscale() an use a Condition() argument in the formula, to adress pseudoreplication.
+And it happens most of the time, that i get the following output, when performing  anova on an ordiR2step object:
+
+
+No constrained component
+
+Model: capscale(formula = spe1 ~ 1 + Condition(field.ID), data = env1, distance = "bray", add = T)
+         Df    Var  F N.Perm Pr(>F)
+Model     0 0.0000  0      0       
+Residual 29 1.5227 
+
+
+The two capscale objects in ordiR2step(cs0, cs1,direction="forward",pstep=1000,trace=F) are the Null-Model (cs0):
+capscale(spe ~ 1 + Condition(field.ID), distance="bray", data=env, add=T)
+and the global model(cs1):
+capscale(spe ~ 1 + Condition(field.ID), distance="bray", data=env, add=T)
+
+This confuses me, because i have a significant factor "age class" that is always significant when perfoming anova on a odiR2step-object,
+containing the NUll-Model and another one with age_class as the only environmental parameter:
+
+capscale(spe ~ age_class, distance="bray", data=env[,!env$field.ID], add=T)
+
+Interestingly when when plotting cs1 there is never age_class displayed in the plot.
+
+The condition field ID  is the Nr. of the field, that i sampled twice in two consecutive years. I have 12 plots with to repeated measurements and another six plots, 
+that have changed in the two consecutive years, hence field.IDs 13,14,15,16,17,and 18 only appear once, whereas 1:12 appear twice. Age_class is a factor with 5 levels, three replicates each.
+
+I tried to reproduce the situation with the "mite" dataset from vegan. But here I get constrained components, because sampling campaign (samcam) seems to be quite significant. However the factor
+"age_class" is disappearing, if i am using Condition("field.ID"). Although i manipulated the data to get an influence of age_class, here is my example with the mites data:
+
+
+# Load Data
+data(mite)
+data(mite.env)
+
+spe <- mite[1:30,1:25]
+env1 <- mite.env[1:30,]
+
+#add my original factors
+env <- data.frame(matrix(NA,30,4))
+colnames(env) <- c("field.ID", "age_class", "SamCam","crop")
+env[,1] <- factor(c(seq(1,12,1),13,14,15,seq(1,12,1),16,17,18))
+env[,2] <- factor(rep(rep(letters[1:5],each=3),2))
+env[,3] <- factor(rep(c(1,2),each=15))
+env[,4] <- factor(rep(c(rep("A",12),rep("B",3)),2))
+
+env <- cbind(env,env1)
+
+#add age_class effect
+spe[env$age_class=="a",1:5] <-  spe[env$age_class=="a",1:5] + sample(c(14:31),7, replace=T)
+spe[env$age_class=="d",10:15] <-  spe[env$age_class=="d",10:15] - sample(c(14:31),7, replace=T)
+spe[spe<0] <- 0
+
+# perform partial db_RDA
+
+#A with condition(field.ID)
+spe.db.repmes0 <- capscale(spe ~ 1 + Condition(field.ID), distance="bray", data=env, add=T) 
+spe.db.repmes1 <- capscale(spe ~ . + Condition(field.ID), distance="bray", data=env, add=T) 
+spe.db.repmes1 <- capscale(spe ~ age_class + Condition(field.ID), distance="bray", data=env, add=T) 
+stepping <- ordiR2step(spe.db.repmes0 , spe.db.repmes1,direction="forward",pstep=1000,trace=F)
+anova(stepping)
+
+# no factor age_class in the plots:
+par(mfrow=c(1,2))
+plot(spe.db.repmes1, scaling=1,display=c("sp","lc", "cn"), main="Triplot RDA - scaling 1 - lc scores")
+plot(spe.db.repmes1, scaling=2,display=c("sp","lc", "cn"), main="Triplot RDA - scaling 2 - lc scores")
+
+
+# without Condition, while removing field.ID from the env dataset
+spe.db.repmes0 <- capscale(spe ~ 1 , distance="bray", data=env[,-1], add=T) 
+spe.db.repmes1 <- capscale(spe ~ . , distance="bray", data=env[,-1], add=T) 
+stepping <- ordiR2step(spe.db.repmes0 , spe.db.repmes1,direction="forward",pstep=1000,trace=F)
+anova(stepping)
+
+Permutation test for capscale under reduced model
+Permutation: free
+Number of permutations: 999
+
+Model: capscale(formula = spe ~ age_class + Substrate + WatrCont, data = env[, -1], distance = "bray", add = T)
+         Df Variance      F Pr(>F)    
+Model    10   5.4294 2.1927  0.001 ***
+Residual 19   4.7047                  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+# age_class has a significant influence on community composition!!
+
+Does anybody knows what is going wrong here? 
+
+thanks for your help and advices in advance
+
+Pahrcyde
