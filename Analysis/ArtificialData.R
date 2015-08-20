@@ -10,18 +10,19 @@ for(i in 1:15){
 }
 
 
-env.means <- structure(c(6.337, 19.39, 0.17, 25.54, 11.52, 1.70, -3.72e-18), 
-                       .Names = c("pH","mc", "n", "clay", "temp", "prec", "intensity"))
-
-env.sd <- structure(c(0.73, 5.86, 0.07, 7.16, 3.18, 0.63, 0.65),
-                    .Names = c("pH", "mc", "n", "clay", "temp", "prec", "intensity"))
-
 
 env <- data.frame(matrix(NA,30,10))
 colnames(env) <- c("field.ID", "age_class", "SamCam","pH", "mc", "n", "clay", "temp", "prec", "intensity")
 env[,1] <- factor(c(seq(1,12,1),13,14,15,seq(1,12,1),16,17,18))
 env[,2] <- factor(rep(rep(letters[1:5],each=3),2))
 env[,3] <- factor(rep(c(1,2),each=15))
+
+# create environmental variables based on mean and sd of my observation
+env.means <- structure(c(6.337, 19.39, 0.17, 25.54, 11.52, 1.70, -3.72e-18), 
+                       .Names = c("pH","mc", "n", "clay", "temp", "prec", "intensity"))
+
+env.sd <- structure(c(0.73, 5.86, 0.07, 7.16, 3.18, 0.63, 0.65),
+                    .Names = c("pH", "mc", "n", "clay", "temp", "prec", "intensity"))
 
 for(i in 4:10){
     env[,i] <- round(rnorm(30, mean=env.means[i-3], sd=env.sd[i-3]),2)
