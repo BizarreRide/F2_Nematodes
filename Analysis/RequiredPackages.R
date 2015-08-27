@@ -15,19 +15,13 @@ library(multcomp)
 library(nlme)
 library(car)
 library(extrafont)
-loadfonts(device="win")
+
 
 # Functions:
 source("analysis/cleanplot.pca.R")
 source("analysis/evplot.R")
 
-windowsFonts(Times=windowsFont("TT Times New Roman"))
-windowsFonts(Arial=windowsFont("TT Arial"))
-windowsFonts(ArialNarrow=fonts("Arial Narrow"))
 
-windowsFonts()
-fonts()
-fonttable()
 
 veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100) 
 {
