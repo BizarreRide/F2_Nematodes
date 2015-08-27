@@ -103,10 +103,14 @@ par(mfrow=c(1,1))
 dev.off()
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+str(env1)
 
-
-
-
+fam.av <- aggregate(fam[sapply(fam,is.numeric)], list(env1$field.ID),mean)
+fam.av <- fam.av[,-1]
+env.fac <- env.fin[!sapply(env.fin,is.numeric)]
+env.fac <- env.fac[-c(16:27),]
+env.av <- aggregate(env.fin[sapply(env.fin,is.numeric)], list(env1$field.ID),mean) 
+env.av <- cbind(env.fac,env.av)
 
 
 

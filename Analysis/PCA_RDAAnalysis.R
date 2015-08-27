@@ -42,11 +42,9 @@ par(mfrow=c(1,1))
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-
-# RDA after Ralf Schäfer ####
-# https://www.youtube.com/watch?v=gY_iktfpSpQ
-
 ## 1. Data Preparation ####
+# after Ralf Schäfer 
+# https://www.youtube.com/watch?v=gY_iktfpSpQ
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Here we are interested in families that have a strong relationship with the environmental gradient
@@ -72,7 +70,7 @@ sort(apply(fam.fin, 2, max))
 sort(apply(fam.fin,2,sd))
 
 # now we look at the environmental variables
-env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation"))
+env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","age","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation"))
 env.fin$intensity <- mngmnt$intensity
 # collinearity may hamper interpretation  of the RDA with respect to the relevance of individual
 # variables
@@ -139,7 +137,7 @@ permutest(fam.MHV)
 ### for each sampling campaign ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# SAMPLING CAMPAIGN 2 - AUTMUN 2012 ---------------------
+### SAMPLING CAMPAIGN 2 - AUTMUN 2012 ---------------------
 
 # If we had used Hellinger TRansformation we would not need to scale
 fam.rda1 <- rda(fam.fin[env.fin$samcam==2,] ~ ., data=env.fin[env.fin$samcam==2,-c(1,3,4,7,10,11)], scale=TRUE)
@@ -190,7 +188,7 @@ set.seed(111)
 anova.cca(fam.rda1, by="axis", step=1000)
 # two axes are significant
 
-# SAMPLING CAMPAIGN 4 - AUTMUN 2013  ---------------------
+### SAMPLING CAMPAIGN 4 - AUTMUN 2013  ---------------------
 
 # If we had used Hellinger TRansformation we would not need to scale
 fam.rda2 <- rda(fam.fin[env.fin$samcam==4,]~., data=env.fin[env.fin$samcam==4,-c(1,3,4,7,10,11)], scale=TRUE)
@@ -215,7 +213,7 @@ anova(stepping)
 
 # AAArrrrrghhH!!!!!!
 
-# Triplots ####
+### Triplots ####
 
 # For Sampling campaign 2 only, s.o.
 
@@ -267,8 +265,36 @@ arrows(0,0,fam.sc2[,1], fam.sc2[,2],length=0, lty=1, col="red")
 ## 3. partial tb-RDA #### 
 # to eliminate the influence of repeated measurements 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fam.repmes <- rda(fam.hel ~ . + Condition(field.ID),data=env.fin[,-c(3,7)])
 
+field.ID <- env$field.ID
+env1 <- env.fin[,1]
+env2 <- env.fin[,2]
+
+x <- varpart(fam, ~ .,env2,data=env1, transfo = "hel")
+showvarparts(x)
+plot(x)
+fam.hel1 <- fam.hel
+fam.hel1 <- fam.hel1[!env.fin$crop=="Maize",]
+env.fin1 <- env.fin[-c(3,8,11,12,15)]
+env.fin1 <- env.fin1[!env.fin$crop=="Maize",]
+field.ID <- env.fin$field.ID
+field.ID <- env.fin[!env.fin$crop=="Maize",]$field.ID
+
+fam.repmes1 <- rda(fam.hel ~ . - c + Condition(field.ID),env.fin) #+ Condition(field.ID) !env.fin$crop=="Maize",
+fam.repmes0 <- rda(fam.hel1 ~ 1 + Condition(field.ID),env.fin1)
+
+vif(fam.repmes1)
+
+step.res <- ordiR2step(fam.repmes0, scope=formula(fam.repmes1), perm.max=200, trace=F)
+step.res$anova
+anova(step.res)
+
+x11()
+par(mfrow=c(1,2))
+plot(fam.repmes1, scaling=1,display=c("sp","lc", "cn"), main="Triplot RDA - scaling 1 - lc scores")
+plot(fam.repmes1, scaling=2,display=c("sp","lc", "cn"), main="Triplot RDA - scaling 2 - lc scores")
+
+stepping <- ordiR2step(rda(fam.hel ~ 1 + Condition(field.ID),data=env.fin), scope=formula(fam.repmes),direction="both",pstep=1000,trace=F)
 stepping <- ordiR2step(rda(fam.hel ~ 1 + Condition(field.ID),data=env.fin), scope=formula(fam.repmes),direction="both",pstep=1000,trace=F)
 
 anova(stepping)
@@ -461,15 +487,22 @@ plot(fam.repmes, display=c("sp", "lc","cn"))
 # to reduce the influence of repeated measurements and use the Bray Curtis distance 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-env.fin.db <- env.fin[,-c(7,10,11)] 
-fam.fin.db <- fam.fin 
+env.fin$field.ID <- as.numeric(env.fin$field.ID)
+#env.fin$field.ID <- as.factor(env.fin$field.ID)
 
-fam.db.repmes <- capscale(fam.fin.db  ~ . -field.ID + Condition(field.ID), distance="bray", data=env.fin.db, add=T)
-summary(fam.db.repmes)
-stepping <- ordiR2step(capscale(fam.fin.db ~ 1 + Condition(field.ID),distance="bray", data=env.fin.db, add=T), scope=formula(fam.db.repmes),direction="forward",pstep=1000,trace=F)
+nmds1 <- metaMDS(fam.fin, distance="bray", k=2, trymax=100)
+plot(nmds1)
+
+
+fam.db.repmes1 <- capscale(fam.fin  ~ . -c + Condition(samcam + field.ID), distance="bray", data=env.fin, add=T)
+fam.db.repmes0 <- capscale(fam.fin  ~ 1 + Condition(samcam + field.ID), distance="bray", data=env.fin, add=T)
+
+stepping <- ordiR2step(fam.db.repmes0, fam.db.repmes1,direction="both", perm.max=200, pstep=1000,trace=F)
+stepping <- ordistep(fam.db.repmes0, fam.db.repmes1,direction="both", perm.max=200, pstep=1000,trace=F)
+summary(stepping)
 anova(stepping)
 
-fam.db.repmes <- capscale(fam.fin ~ age_class + n + clay + Condition(field.ID), distance="bray", data=env.fin.db, add=TRUE)
+fam.db.repmes <- capscale(fam.fin ~ age_class + n + clay + Condition(samcam + field.ID), distance="bray", data=env.fin, add=TRUE)
 summary(fam.db.repmes, display=NULL)
 
 anova(fam.db.repmes, step=1000, perm.max=1000)
@@ -477,7 +510,21 @@ anova(fam.db.repmes, by="axis", step=1000, perm.max=1000)
 # 2 axes are significant
 # However field.ID was not used as a factor!!
 
+#####
+summary(fam.db.repmes1)
+R2.all <- RsquareAdj(fam.repmes1)$adj.r.squared
 
+RsquareAdj(fam.db.repmes1)
+RsquareAdj(fam.db.repmes0)
+
+field.ID <- groups$field.ID
+age_class <- groups$age_class
+numerics <- soil[,c(4,5,7,11)]
+vp <- varpart(fam.hel,numerics,~age_class, ~field.ID)
+
+plot(vp)
+
+####
 
 #Triplots:
 x11()
@@ -492,8 +539,9 @@ plot(fam.db.repmes, scaling=2, main="Triplot RDA - scaling 2 - wa scores")
 
 
 
+## ggplot2 Triplots ####
+
 fam.rm.sc1 <- scores(fam.db.repmes, display=c("sp", "lc","cn", "bp"), scaling=1)
-fam.rm.sc1
 fam.rm.sc2 <- scores(fam.db.repmes, display=c("sp", "lc","cn", "bp"), scaling=2)
 
 # age_class centroids
@@ -566,28 +614,70 @@ for(g in levels(site_constraints2$age_class)){
 
 
 # Scaling 1
-ggplot(ac.cid1, aes(x = CAP1, y = CAP2))+
-  geom_text(aes(label = txt),fontface="italic", cex=3)+ # label tells geom_text which text you want to plot
-  geom_point(pch=17, size=5, col="red")+ # label tells geom_text which text you want to plot
-  geom_text(data = spec.cid1, aes(label = txt), colour = "orange") +
-  coord_cartesian(y=c(1.2*min(spec.cid1$CAP2),1.2*max(spec.cid1$CAP2)), x=c(1.2*min(spec.cid1$CAP1),1.3*max(spec.cid1$CAP1))) + 
-  #NB note that this is a convenience wrapper and may cut data out of your plot
-  #important if you are calculating stats in the plot - these will be excluded
-  geom_segment(data = env.ar1[-c(1:4),] , aes(x = 0, xend = mult * CAP1, y = 0, yend = mult * CAP2),
-               arrow = arrow(length = unit(0.25, "cm")), colour = "light blue") + #grid is required for arrow to work.
-  geom_text(data = env.ar1[-c(1:4),] , aes(x= (mult + mult/20) * CAP1, y = (mult + mult/20) * CAP2,  label = env.ar1[-c(1:4),]$txt), size = 5, hjust = 0.5) +
-  # we add 10% to the text to push it slightly out from arrows
-  # otherwise you could use hjust and vjust. I prefer this option
+Scaling1 <- ggplot(ac.cid1, aes(x = CAP1, y = CAP2)) +
+  coord_cartesian(y=c(1.2*min(spec.cid1$CAP2),1.3*max(spec.cid1$CAP2)), x=c(1.5*min(spec.cid1$CAP1),1.5*max(spec.cid1$CAP1))) + 
+  geom_hline(aes(yintercept=0),lty=3) + 
+  geom_vline(aes(xintercept=0),lty=3) + 
+  
+  ## Site Scores: ##
+  #geom_path(data=df_ell1.1, aes(x=CAP1, y=CAP2, colour=age_class), size=0.5, linetype=2) + 
+  #stat_ellipse(data=df_ell1.1, geom = "polygon", alpha = 1/2, aes(x=CAP1, y=CAP2, fill=age_class, color=age_class)) +
+  #geom_text(data = site_scores, aes(x = CAP1, y = CAP2, label = rownames(site_scores)), size = 3, colour = "grey50")+
   #geom_point(data=site_scores1, aes(x = CAP1, y = CAP2, shape=env.fin$age_class)) +
+  
+  ## Site constraints: ##
+  geom_path(data=df_ell1.2, aes(x=CAP1, y=CAP2, bg=age_class, color=age_class), size=0.5, linetype=2) +
+  stat_ellipse(data=df_ell1.2, geom = "polygon", alpha = 1/2, aes(x=CAP1, y=CAP2, fill=age_class, color=age_class)) +
+  geom_point(pch=13, size=3, col="red") + # points for age_class means
+  geom_text(aes(label = txt), family="Arial Narrow",fontface="italic", size=5) + # text for age_class means
   geom_point(data=site_constraints1, aes(x = CAP1, y = CAP2, shape=env.fin$age_class)) +
-  #geom_path(data=df_ell1.1, aes(x=CAP1, y=CAP2, colour=age_class), size=0.5, linetype=2) +
-  geom_path(data=df_ell1.2, aes(x=CAP1, y=CAP2, colour=age_class), size=0.5, linetype=2) +
-  #geom_text(data = site_scores, aes(x = CAP1, y = CAP2, label = rownames(site_scores)), size = 3, colour = "grey50")+    
-  theme_bw()
+  
+  # species scores:
+  geom_segment(data = spec.cid1[-c(1:4),] , aes(x = 0, xend = 0.9*CAP1, y = 0, yend = 0.96*CAP2),
+               arrow = arrow(angle=20, type="closed",length = unit(0.25, "cm")), lty=3,lwd=0.5, colour = "dark grey") +
+  geom_text(data = spec.cid1, aes(label = txt), cex=3, colour = "black") +
+  
+  # Environmental constraints
+  geom_segment(data = env.ar1[-c(1:4),] , aes(x = 0, xend = mult * CAP1, y = 0, yend = mult * CAP2),
+               arrow = arrow(length = unit(0.25, "cm"), type="closed", angle=20), colour = "black") + #grid is required for arrow to work.
+  geom_text(data = env.ar1[-c(1:4),] , aes(x= (mult + mult/20) * CAP1, y = (mult + mult/20) * CAP2,  label = env.ar1[-c(1:4),]$txt), size = 3, hjust = 0.5) +
+  
+  mytheme + theme(legend.position="none")
+
+
+ggsave(file="partial db-RDASacling-1.svg",Scaling1, width=11, height=9, units="cm", dpi=300)
 
 # use env.ar1[-c(1:4),]  to ommit factor levels
 
-
+Scaling2 <- ggplot(ac.cid2, aes(x = CAP1, y = CAP2)) +
+  coord_cartesian(y=c(1.2*mult*min(env.ar2$CAP2),1.2*max(site_scores2$CAP2)), x=c(1.2*mult*min(env.ar2$CAP1),1.3*max(site_scores2$CAP1))) + 
+  geom_hline(aes(yintercept=0),lty=3) + 
+  geom_vline(aes(xintercept=0),lty=3) + 
+  
+  ## Site Scores: ##
+  #geom_path(data=df_ell2.1, aes(x=CAP1, y=CAP2, colour=age_class), size=0.5, linetype=2) + 
+  #stat_ellipse(data=df_ell2.1, geom = "polygon", alpha = 1/2, aes(x=CAP1, y=CAP2, fill=age_class, color=age_class)) +
+  #geom_text(data = site_scores, aes(x = CAP1, y = CAP2, label = rownames(site_scores)), size = 3, colour = "grey50")+
+  #geom_point(data=site_scores2, aes(x = CAP1, y = CAP2, shape=env.fin$age_class)) +
+  
+  ## Site constraints: ##
+  stat_ellipse(data=df_ell2.2, geom = "polygon", alpha = 1/2, aes(x=CAP1, y=CAP2, fill=age_class, color=age_class)) +
+  geom_path(data=df_ell2.2, aes(x=CAP1, y=CAP2, bg=age_class, color=age_class), size=0.5, linetype=2) +
+  geom_point(pch=13, size=3, col="red") + # points for age_class means
+  geom_text(aes(label = txt), family="Arial Narrow",fontface="italic", size=5) + # text for age_class means
+  geom_point(data=site_constraints2, aes(x = CAP1, y = CAP2, shape=env.fin$age_class)) +
+  
+  # species scores:
+  geom_segment(data = spec.cid2[-c(1:4),] , aes(x = 0, xend = 0.9*CAP1, y = 0, yend = 0.96*CAP2),
+               arrow = arrow(angle=20, type="closed",length = unit(0.25, "cm")), lty=3,lwd=0.5, colour = "dark grey") +
+  geom_text(data = spec.cid2, aes(label = txt), cex=3, colour = "black") +
+  
+  # Environmental constraints
+  geom_segment(data = env.ar2[-c(1:4),] , aes(x = 0, xend = mult * CAP1, y = 0, yend = mult * CAP2),
+               arrow = arrow(length = unit(0.25, "cm"), type="closed", angle=20), colour = "black") + #grid is required for arrow to work.
+  geom_text(data = env.ar2[-c(1:4),] , aes(x= (mult + mult/20) * CAP1, y = (mult + mult/20) * CAP2,  label = env.ar2[-c(1:4),]$txt), size = 3, hjust = 0.5) +
+  
+  mytheme + theme(legend.position="none")
 
 #Scaling 2
 ggplot(ac.cid2, aes(x = CAP1, y = CAP2))+
@@ -607,11 +697,30 @@ ggplot(ac.cid2, aes(x = CAP1, y = CAP2))+
   #geom_path(data=df_ell2.1, aes(x=CAP1, y=CAP2, colour=age_class), size=0.5, linetype=2) +
   geom_path(data=df_ell2.2, aes(x=CAP1, y=CAP2, colour=age_class), size=0.5, linetype=2) +
   #geom_text(data = site_scores, aes(x = CAP1, y = CAP2, label = rownames(site_scores)), size = 3, colour = "grey50")+    
-  theme_bw()
-
-
+  mytheme + legend.position("none")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+# tb - RDA with averaged data ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+
+fam.db1 <- capscale(fam.av  ~ age_class + pH + n + mc + prec1 + intensity + ata1 , distance="bray", data=env.av, add=T)
+fam.db0 <- capscale(fam.av  ~ 1 , distance="bray", data=env.av, add=T)
+
+summary(fam.db.repmes)
+stepping <- ordiR2step(fam.db0, fam.db1,direction="forward",pstep=1000,trace=F)
+anova(stepping)
+
+fam.db <- capscale(fam.av ~ age_class + n + intensity, distance="bray", data=env.av, add=TRUE)
+summary(fam.db, display=NULL)
+
+anova(fam.db, step=1000, perm.max=1000)
+anova(fam.db, by="axis", step=1000, perm.max=1000)
+
+dbRDA <- fam.db
+dbenv <- env.av
+source("Analysis/dbRDA_ggplots.R")
+Scaling1

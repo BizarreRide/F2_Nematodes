@@ -1,0 +1,44 @@
+
+
+
+########## ANALYSIS OUTLINE #######################
+
+
+
+Aims of the Analysis:
+
+The first anf foremost aim is:
+X1. Are there typical community structures for the age_classes???
+
+How could that be adressed?
+1.1 By multivariate multiple Regression
+
+1.2 By RDA() Analysis
+
+1.3 By NMDS() Analysis
+
+2. Are there Indicator families, typical for the communities of the age_classes?
+
+How could that be adressed?
+2.1 ISA using method Indval
+
+2.2 Multivariate Regression tree (MRT)??
+
+X2. If age_class is a good environmental predictor, Does the repeated measurements have an Influence already?
+    ** Is the effect of age_class resembled during the time of sampling **
+
+How could that be adresses?
+1.1 See if the interaction of age class and sampling campaign has an significant influence
+    **Is it necessary here ot account for within subject correlation?**
+
+1.2 See if "age" as a variable is influencial, 
+    **however this approach is probably not taking correlation between samples from the same field into account**
+
+1.2 Comparing the two data sets, by using methods 1.1, 1.2, 1.3 for each in turn
+
+1.3 pairwise comparisons of sampling pairs
+
+X3. If age_class is not a good explanation, are there structures, tha can be explaines by other factors?
+
+How could that be adressed?
+3.1 CLustering the family composition data
