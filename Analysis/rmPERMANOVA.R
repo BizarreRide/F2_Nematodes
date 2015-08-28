@@ -200,13 +200,33 @@ text(0.08, 300, paste("true R2,\np = ", pval, sep = ""))
 
 
 
+# Probably this solves my Problems:
 
+# See if there is a n increae over time
+# glmm(y ~ age + (1|field.ID), data)
 
+# And then see if there are differences in proportions of families between age_classes
 
+require(lme4)
 
+nema1 <- cbind(fam.fin, env.fin)
+nema2 <- nema1[!nema1$crop=="Maize",]
 
+fit1 <- glmer(Aphelenchidae ~ age + (1|field.ID), family="poisson", nema2)
+fit1 <- glmer(Mononchidae ~ age + (1|field.ID), family="poisson", nema2)
+fit1 <- glmer(Plectidae ~ age + (1|field.ID), family="poisson", nema2)
+fit1 <- glmer(Cephalobidae ~ age + (1|field.ID), family="poisson", nema2)
 
+summary(fit1)
+Anova(fit1)
 
+nema.slope <- cbind(fam.slope, env.av[1:12,])
+
+nema.slope$age_class <- as.ordered(nema.slope$age_class)
+
+fit2 <- lm(Hoplolaimidae ~ age_class, nema.slope)
+ 
+summary(fit2)
 
 
 

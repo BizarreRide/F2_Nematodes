@@ -5,6 +5,8 @@
 # 06.08.2015
 ###########################
 
+# With this file i also aim to figure out, if everaging over repeated measurements confounds my results.
+
 # Question In which direction change the nematode species from 2012 to 2013?
 # Are there general trends?
 

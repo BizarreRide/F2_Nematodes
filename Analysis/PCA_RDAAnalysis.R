@@ -487,7 +487,8 @@ plot(fam.repmes, display=c("sp", "lc","cn"))
 # to reduce the influence of repeated measurements and use the Bray Curtis distance 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-env.fin$field.ID <- as.numeric(env.fin$field.ID)
+# env.fin$age <- as.numeric(env.fin$age)
+#env.fin$field.ID <- as.numeric(env.fin$field.ID)
 #env.fin$field.ID <- as.factor(env.fin$field.ID)
 
 nmds1 <- metaMDS(fam.fin, distance="bray", k=2, trymax=100)
