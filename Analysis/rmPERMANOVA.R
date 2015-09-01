@@ -1,6 +1,6 @@
 ###########################
 # F2 Nematodes
-# PCA and RDA Analysis
+# repeated Measurements PERMANOVA
 # Quentin Schorpp
 # 06.08.2015
 ###########################
@@ -11,6 +11,69 @@
 source("data/RMAkeLikeFile.R")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#Beth and others,
+
+#Given several recent queries regarding how to analyze repeated-measures
+#and split-plot perManova using adonis, I thought I would pass along what I
+#think is a reasonable solution.
+
+#I just saw the recent exchange over the use of BiodiversityR to do nested
+#perMANOVA. I was unaware of this function until today.
+
+#With that in mind, it is possible to do a simple repeated-measures
+#permanova using two different analyses, one for the within-subjects
+#effects and one for the between-subjects effects. The same approach
+#applies to a simple split-plot analysis.
+
+#For the within-subjects (or sub-plot) effects, you use adonis and the
+#strata function. The model formula could look something like:
+  
+#  Assume species responses are in "Speciesdata" and the treatment, time, and
+#plot effects are in "envfactors"
+
+#Adonis(Speciesdata ~ betweensubtrtmt * time + plot, data = envfactors,
+#       strata = plot)
+
+# Where plot is nested within the betweensubtrtmnt
+# 
+# Strata restricts the permutation, and the residual error term will give
+# you the correct test for the time effect and the betweensubtrtmnt * time
+# interaction, but the test for the betweensubtrmnt main effect will be
+# wrong because plot, and not the residual error term, is the correct error
+# term for testing it.
+# 
+# To get a test for the betweensubtrtmnt main effect, load the BiodiversityR
+# package (I use the 1.6 version, but see the recent discussion about this)
+# and use the nested.npmanova function.
+# 
+# Nested.npmanova(speciesdata ~ betweensubtrtmnt + plot; data = envfactors)
+# 
+# In this case, the betweensubtrtmnt is tested with plot; plot is tested
+# with the residual error term but that latter test is not correct in this
+# instance and is usually not of interest anyway.
+# 
+# Note that the default distance is euclidean; you'll to use "method" to
+# specify a different distance, e.g.,
+# 
+# Nested.npmanova(speciesdata ~ betweensubtrtmnt + plot; data = envfactors;
+# method ="bray")
+# 
+# 
+# The same principles apply to a simple split-plot design, except that the
+# whole-plot treatment is treated like a between-subjects treatment and the
+# sub-plot treatment is treated like the time effect.
+# 
+# Hope this is of some help.
+# 
+# Steve
+# 
+# 
+# In traditional multivariate approaches of analyzing repeated measures data, 
+# we ignore issues of nesting and crossing and use different names for these same concepts. 
+# Factors that Subject is nested within, like Training group, are called between-subjects factors. 
+# Factors that Subject is crossed with, like Time, are called within-subjects factors.
+
+# Field ID is nested within age_class
 
 fam.rp <- fam[!env1$crop=="Maize",]
 

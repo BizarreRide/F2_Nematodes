@@ -10,7 +10,6 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Community Data (Family level)
 spe <- read.delim("Data/spe.txt")
-str(spe)
 spe$samcam <- as.factor(spe$samcam)
 spe$field.ID <- as.factor(spe$field.ID)
 
@@ -19,7 +18,6 @@ fam <- spe[, which(names(spe)=="Aphelenchidae"):which(names(spe)=="Pratylenchida
 fety <- spe[, which(names(spe)=="carnivore"):which(names(spe)=="omnivore")]
 
 env <- read.delim("Data/env.txt")
-str(env)
 env$samcam <- as.factor(env$samcam)
 env$field.ID <- as.factor(env$field.ID)
 
@@ -33,10 +31,8 @@ climate30 <- env1[,which(names(env1)=="ata1"):which(names(env1)=="rad1")]
 climate1 <- env1[,which(names(env1)=="ata2"):which(names(env1)=="rad2")]
 mngmnt <- env1[,which(names(env1)=="soil_coverage"):which(names(env1)=="compaction")]
 
-
-env2 <- env[rep(seq_len(nrow(env)), each=3),-1]
-
 counts <- read.delim("Data/counts.txt")
+counts.env <- env[rep(seq_len(nrow(env)), each=3),-1]
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -103,15 +99,13 @@ par(mfrow=c(1,1))
 dev.off()
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-str(env1)
-
 fam.av <- aggregate(fam[sapply(fam,is.numeric)], list(env1$field.ID),mean)
 fam.av <- fam.av[,-1]
 env.fac <- env.fin[!sapply(env.fin,is.numeric)]
 env.fac <- env.fac[-c(16:27),]
 env.av <- aggregate(env.fin[sapply(env.fin,is.numeric)], list(env1$field.ID),mean) 
 env.av <- cbind(env.fac,env.av)
-
+rm(env.fac)
 
 
 

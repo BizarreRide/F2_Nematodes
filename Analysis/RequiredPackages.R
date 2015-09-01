@@ -13,6 +13,7 @@ library(grid)
 #library(ggbiplot)
 library(multcomp)
 library(nlme)
+library(lme4)
 library(car)
 library(extrafont)
 

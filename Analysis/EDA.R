@@ -5,6 +5,34 @@
 # 06.08.2015
 ###########################
 
+source("Data/RMakeLikeFile.R")
+
+
+# Cross Tables to reveal the nested structure
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tapply(indices$N,list(env1$age_class, env1$samcam),length)
+tapply(indices$N,list(env1$field.ID,env1$age_class),length) # field.ID is nested in age_class
+tapply(indices$N,list(env1$field.ID, env1$samcam),length)   # field.ID is partly nested in samcam (Maize field!)
+
+tapply(indices$N,list(env1$crop, env1$samcam),length)
+tapply(indices$N,list(env1$field.ID, env1$crop),length)
+tapply(indices$N,list(env1$age_class, env1$crop),length)   # crop and age_class are correlated
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Creating a grouped Data Object ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+data <- cbind(indices, env.fin)
+
+data <- groupedData(PPI ~ age_class | field.ID, data)
+str(data)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
 # With this file i also aim to figure out, if everaging over repeated measurements confounds my results.
 
 # Question In which direction change the nematode species from 2012 to 2013?
