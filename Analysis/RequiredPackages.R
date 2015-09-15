@@ -16,7 +16,8 @@ library(nlme)
 library(lme4)
 library(car)
 library(extrafont)
-
+library(faraway)
+library(BiodiversityR)
 
 # Functions:
 source("analysis/cleanplot.pca.R")

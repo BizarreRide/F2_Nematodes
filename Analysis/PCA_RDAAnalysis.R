@@ -107,7 +107,7 @@ pairs(env.fin[,11:15], lower.panel=panel.smooth, upper.panel=panel.cor)
 
 # we can also check the variance inflation factor
 library(faraway)
-sort(vif(env.fin[,-c(1:4)]))
+sort(faraway::vif(env.fin[,-c(1:4)]))
 # Borcard et al 2011: 175 argue that in the case of RDA, VIFs > 10 should be avoided
 # Theres a video of Ralf schäfer, that tells about how to deal with multicollinearity in multiple regression
 
@@ -133,7 +133,11 @@ fam.hel.d1 <- dist(fam.hel)
 fam.MHV <- betadisper(fam.hel.d1, env.fin$age_class)
 permutest(fam.MHV)
 
-## 2. RDA ####
+## 2. PCA ####
+
+
+
+## 3. RDA ####
 ### for each sampling campaign ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -223,7 +227,7 @@ fam.sc <- scores(fam.rda1, choices=1:2, scaling=1, display="sp")
 arrows(0,0, fam.sc[,1], fam.sc[,2], length =0, lty=1, col="red")
 # lines for species can be omitted
 
-plot(fam.rda1, scaling=2, main="Triplot RDA scaling 1 - wa scores")
+plot(fam.rda1, scaling=2, main="Triplot RDA scaling 2 - wa scores")
 fam.sc2 <- scores(fam.rda1, choices=1:2, scaling=2, display="sp")
 arrows(0,0, fam.sc2[,1], fam.sc2[,2], length =0, lty=1, col="red")
 
@@ -703,16 +707,20 @@ ggplot(ac.cid2, aes(x = CAP1, y = CAP2))+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# tb - RDA with averaged data ####
+#******************************************************Averaged Data *******************************************************************************####
+
+
+# db - RDA with averaged data ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+## All families ####
 
-
-fam.db1 <- capscale(fam.av  ~ age_class + pH + n + mc + prec1 + intensity + ata1 , distance="bray", data=env.av, add=T)
+fam.db1 <- capscale(fam.av  ~ age_class + pH + n + mc + prec1 + intensity + ata1 , distance="bray", add=TRUE, data=env.av)
 fam.db0 <- capscale(fam.av  ~ 1 , distance="bray", data=env.av, add=T)
+summary(fam.db1)
 
-summary(fam.db.repmes)
 stepping <- ordiR2step(fam.db0, fam.db1,direction="forward",pstep=1000,trace=F)
+warnings()
 anova(stepping)
 
 fam.db <- capscale(fam.av ~ age_class + n + intensity, distance="bray", data=env.av, add=TRUE)
@@ -721,7 +729,91 @@ summary(fam.db, display=NULL)
 anova(fam.db, step=1000, perm.max=1000)
 anova(fam.db, by="axis", step=1000, perm.max=1000)
 
+plot1 <- ordiplot(fam.db, scaling=1)
+ordiequilibriumcircle(fam.db,plot1)
+identify(plot1,"sp", labels=names(fam.av), cex=1.0)
+points(plot1, "sites", pch=25, bg=env.av$age_class, cex=0.7) 
+legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", col=c("black", "red", "green", pch=25, pt.cex=1.9))
+
+cleanplot.pca(fam.db)
+
 dbRDA <- fam.db
 dbenv <- env.av
 source("Analysis/dbRDA_ggplots.R")
 Scaling1
+Scaling2
+
+
+## selected families ####
+
+# presence-absence transformation to calculate species number per site
+fam.pa <- decostand(fam.av, "pa")
+# calculate sum per species
+fam.sum <- apply(fam.pa,2,sum)
+sort(fam.sum)
+
+# remove species that occur at less than 5 sites
+fam.av.fin <- fam.av[, !fam.sum<5]
+
+fam.db1 <- capscale(fam.av.fin  ~ age_class + pH + n + mc + prec1 + intensity + ata1 , distance="bray", data=env.av, add=T)
+fam.db0 <- capscale(fam.av.fin  ~ 1 , distance="bray", data=env.av, add=T)
+
+summary(fam.db1)
+stepping <- ordiR2step(fam.db0, fam.db1,direction="forward",pstep=1000,trace=F)
+anova(stepping)
+
+fam.db <- capscale(fam.av.fin ~ age_class + n + intensity, distance="bray", data=env.av, add=TRUE)
+summary(fam.db, display=NULL)
+
+anova(fam.db, step=1000, perm.max=1000)
+anova(fam.db, by="axis", step=1000, perm.max=1000)
+
+# Colored
+require(RColorBrewer)
+par(mar = c(0, 4, 0, 0))
+display.brewer.all()
+dev.off()
+
+colvec1 <- palette()[1:5]
+#colvec1 <- brewer.pal(5, "Set1")
+colvec <- c(rep(colvec1, each=3),rep(colvec1[5],3))
+plot1 <- ordiplot(fam.db, scaling=2)
+ordiequilibriumcircle(fam.db,plot1)
+identify(plot1,"sp", labels=names(fam.av.fin), cex=1.0)
+points(plot1, "sites", pch=25, bg=colvec, cex=0.7) 
+legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
+
+# Grey
+colvec1 <- gray.colors(5, start = 0, end = 1, gamma = 2.2, alpha = NULL)
+colvec <- c(rep(colvec1, each=3),rep(colvec1[5],3))
+plot1 <- ordiplot(fam.db, scaling=1)
+ordiequilibriumcircle(fam.db,plot1)
+identify(plot1,"sp", labels=names(fam.av.fin), cex=1.0)
+points(plot1, "sites", pch=25, bg=colvec, cex=0.7) 
+legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7) 
+
+require(vegan3d)
+plot3d <- ordiplot3d(fam.db, scaling=2, angle=50, type="n")
+points(plot3d, "points", pch=25, bg=colvec, cex=0.7) 
+text(plot3d, "arrows", col="blue", pos=3)
+ordirgl(fam.db, size=2)
+ordirgl(fam.db, display = "species", type = "t")
+rgl.quit()
+
+# I'd say:
+# Maize fields are very similar, 
+# Old SIlphie fields are very similar,
+# Intermediate 1 stages are very similar,
+# Young silphie fileds can be very different, so they can't be categorized, or said to be similar to one of the other groups
+# Intermediate 2 are rahter similar to intermediate 1, however one seems to develop towards older stages. And they seem to be associated with 
+# Tylenchidae
+
+dbRDA <- fam.db
+dbenv <- env.av
+source("Analysis/dbRDA_ggplots.R")
+Scaling1
+Scaling2
+
+
+
+
