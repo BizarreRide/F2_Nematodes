@@ -24,6 +24,9 @@ indices2 <- droplevels(cbind(indices,env.fin))
 str(indices2)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+# A Closer Look on NCR
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 means = tapply(indices2$NCR,
                list(indices2$samcam, indices2$age_class),mean)
 means
@@ -44,6 +47,7 @@ legend(0.5,1,legend=c("A_Cm","SP_Y","SP_I1","SP_I2","SP_O"),lty=c(1,2,3),col=1:5
 # Model formulas to be used
 # model formula: y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
 # model formula2: y ~ age + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # Test for Heteroscedasticity:
@@ -114,13 +118,15 @@ indicesx
 indices2 <- indices2[!env.fin$crop=="Maize",]
 indices2 <- indicesx
 
-# Repeat with glm
+#**********************************************************************************************************************************************
+
+# Repeat with glm from nlme package####
 f.stats.lme <- matrix(NA,11,20)
 p.stats.lme <- matrix(NA,11,20)
 
 for(i in 1:18) {
   indices2$y <- indices2[,i]
-  model <- lme(y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1, random=list(field.ID=pdCompSymm(~samcam-1)), method="REML", indices2)
+  model <- lme(y ~ age_class*samcam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1, random=list(field.ID=pdCompSymm(~samcam-1)), method="REML", indices2)
   print(summary(model))
   nam <- paste("lme",i,names(indices[i]), sep = ".")
   assign(nam, model)
@@ -133,17 +139,69 @@ colnames(f.stats.lme)[3:20] <- colnames(p.stats.lme)[3:20] <- colnames(indices)
 colnames(f.stats.lme)[1] <- colnames(p.stats.lme)[1] <- "Env"
 colnames(f.stats.lme)[2] <- colnames(p.stats.lme)[2] <- "Df"
 
+
+#write.csv(p.stats.lme, file="p-Wertelme.csv")
+#write.csv(f.stats.lme, file="Chi2-Wertelme.csv")
+
+
+# Repeat with glm from lme4 package####
+# Anova Type II
 require(lme4)
-model <- lmer(y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2)
-Anova(model, type="III")
-#write.csv(p.stats.lme, file="p-Werte.csv")
-#write.csv(f.stats.lme, file="Chi2-Werte.csv")
+f.stats.lmer2 <- matrix(NA,11,20)
+p.stats.lmer2 <- matrix(NA,11,20)
+
+for(i in 1:18) {
+  indices2$y <- indices2[,i]
+  model <- lmer(y ~ age_class*samcam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2)
+  print(summary(model))
+  nam <- paste("lme",i,names(indices[i]), sep = ".")
+  assign(nam, model)
+  f.stats.lmer2[,i+2] <- round(Anova(model, type = "II")$"Chisq",2)
+  p.stats.lmer2[,i+2] <- round(Anova(model, type = "II")$"Pr(>Chisq)",3)
+}
+f.stats.lmer2[,1] <- p.stats.lmer2[,1]  <- row.names(Anova(model, type="II"))
+f.stats.lmer2[,2] <- p.stats.lmer2[,2]  <- Anova(model, type = "II")$"Df"
+colnames(f.stats.lmer2)[3:20] <- colnames(p.stats.lmer2)[3:20] <- colnames(indices)
+colnames(f.stats.lmer2)[1] <- colnames(p.stats.lmer2)[1] <- "Env"
+colnames(f.stats.lmer2)[2] <- colnames(p.stats.lmer2)[2] <- "Df"
+
+
+#write.csv(p.stats.lmer2, file="p-WertelmerII.csv")
+#write.csv(f.stats.lmer2, file="Chi2-WertelmerII.csv")
+
+# Anova Type III
+f.stats.lmer3 <- matrix(NA,12,20)
+p.stats.lmer3 <- matrix(NA,12,20)
+
+for(i in 1:18) {
+  indices2$y <- indices2[,i]
+  model <- lmer(y ~ age_class*samcam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2)
+  print(summary(model))
+  nam <- paste("lme",i,names(indices[i]), sep = ".")
+  assign(nam, model)
+  f.stats.lmer3[,i+2] <- round(Anova(model, type = "III")$"Chisq",2)
+  p.stats.lmer3[,i+2] <- round(Anova(model, type = "III")$"Pr(>Chisq)",3)
+}
+f.stats.lmer3[,1] <- p.stats.lmer3[,1]  <- row.names(Anova(model, type="III"))
+f.stats.lmer3[,2] <- p.stats.lmer3[,2]  <- Anova(model, type = "III")$"Df"
+colnames(f.stats.lmer3)[3:20] <- colnames(p.stats.lmer3)[3:20] <- colnames(indices)
+colnames(f.stats.lmer3)[1] <- colnames(p.stats.lmer3)[1] <- "Env"
+colnames(f.stats.lmer3)[2] <- colnames(p.stats.lmer3)[2] <- "Df"
+
+#write.csv(p.stats.lmer3, file="p-WertelmerIII.csv")
+#write.csv(f.stats.lmer3, file="Chi2-WertelmerIII.csv")
+
+# Which Type of Anova?
+
+
+
 
 # Post Hoc Tukey Test with false discovery rate adjustment
 Letters <- matrix(NA,10,18)
 for(i in 1:18) {
   indices2$x <- indices2[,i]
-  model <- lme(x ~ agsam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID, data=indices2)
+  model <- lme(x ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID, data=indices2)
+  #model <- lmer(x ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2) # No Difference
   x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "fdr"))
   nam <- paste("glht",i,names(indices[i]), sep = ".")
   assign(nam, x)
@@ -154,7 +212,8 @@ for(i in 1:18) {
 }
 colnames(Letters) <- colnames(indices)
 
-#write.csv(Letters, file="Letters.csv")
+#write.csv(Letters, file="LettersFDR.csv")
+#write.csv(Letters, file="LettersBonferroni.csv")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -189,8 +248,53 @@ do.call(gridExtra::grid.arrange, pl[c(4,7,15,16,17,18)])
 
 
 
-# Feeding Types
-fety2 <- cbind(fety,env.fin)
+# Feeding Types ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+fety2 <- droplevels(cbind(fety,env.fin))
+str(fety2)
+
+f.stats.glmer3 <- matrix(NA,12,7)
+p.stats.glmer3 <- matrix(NA,12,7)
+
+for(i in 1:5) {
+  fety2$y <- fety2[,i]
+  model <- lmer(log1p(y) ~ age_class*samcam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID),fety2)
+  print(summary(model))
+  nam <- paste("lme",i,names(indices[i]), sep = ".")
+  assign(nam, model)
+  f.stats.glmer3[,i+2] <- round(Anova(model, type = "III")$"Chisq",2)
+  p.stats.glmer3[,i+2] <- round(Anova(model, type = "III")$"Pr(>Chisq)",3)
+}
+f.stats.glmer3[,1] <- p.stats.glmer3[,1]  <- row.names(Anova(model, type="III"))
+f.stats.glmer3[,2] <- p.stats.glmer3[,2]  <- Anova(model, type = "III")$"Df"
+colnames(f.stats.glmer3)[3:7] <- colnames(p.stats.glmer3)[3:7] <- colnames(fety)
+colnames(f.stats.glmer3)[1] <- colnames(p.stats.glmer3)[1] <- "Env"
+colnames(f.stats.glmer3)[2] <- colnames(p.stats.glmer3)[2] <- "Df"
+
+#write.csv(p.stats.glmer3, file="p-WerteglmerIII.csv")
+#write.csv(f.stats.glmer3, file="Chi2-WerteglmerIII.csv")
+
+# Post Hoc Tukey Test with false discovery rate adjustment
+LettersFety <- matrix(NA,10,5)
+for(i in 1:5) {
+  fety2$x <- fety2[,i]
+  model <- lmer(log1p(x) ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2) 
+  x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "fdr"))
+  nam <- paste("glht",i,names(fety[i]), sep = ".")
+  assign(nam, x)
+  x <- cld(x)$mcletters
+  xx <- x$Letters
+  LettersFety[,i] <- xx
+  row.names(LettersFety) <- levels(env.fin$agsam)
+}
+colnames(LettersFety) <- colnames(fety)
+
+#write.csv(LettersFety, file="LettersFety.csv")
+
+
+
+
 require(reshape2)
 fety.melt <- melt(fety2, id.vars=6:21)
 g2 <- ggplot(fety.melt, aes(x = age_class, y = value)) +
@@ -201,10 +305,14 @@ g2 <- ggplot(fety.melt, aes(x = age_class, y = value)) +
   #ylab() +
   #facet_wrap(~ variable, scales="free") +
   theme_bw()
-
+g2
 pl2 = plyr::dlply(fety.melt, "variable", `%+%`, e1 = g2)
 
 do.call(gridExtra::grid.arrange, pl2)
 
-
+with(fety, hist(log1p(fety$carnivore)))
+with(fety, hist(fety$bacterivore))
+with(fety, hist(fety$herbivore))
+with(fety, hist(fety$omnivore))
+with(fety, hist(fety$fungivore))
 
