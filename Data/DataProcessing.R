@@ -98,7 +98,7 @@ climate30.pca <- rda(climate30, scale=T)
 cleanplot.pca(climate30.pca) # select:ata1 + prec1
 rm(climate30.pca)
 ## Subset of (mostly) orthogonal variables ####
-env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation", "intensity"))
+env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","age","clay","ata2","hum2","ata1","prec1", "fertilisation", "intensity"))
 
 env.fin.pca <- rda(env.fin[,-c(1:4)], scale=T)
 cleanplot.pca(env.fin.pca)
@@ -114,7 +114,7 @@ env.av <- aggregate(env.fin[sapply(env.fin,is.numeric)], list(env1$field.ID),mea
 env.av <- cbind(env.fac,env.av)
 rm(env.fac)
 
-env.av.fin <- subset(env.av, select=c("field.ID","age_class","crop","pH","mc","c","n","clay","ata2","hum2","ata1","prec1", "fertilisation", "intensity"))
+env.av.fin <- subset(env.av, select=c("field.ID","age_class","crop","pH","mc","c","age","clay","ata2","hum2","ata1","prec1", "fertilisation", "intensity"))
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -122,6 +122,13 @@ env.av.fin <- subset(env.av, select=c("field.ID","age_class","crop","pH","mc","c
 # Nematode Families ####
 # Select orthogonal environmental variables
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Family proportions
+fam.rel <- fam/indices$N
+
+# Family proportions upscaled to total bundances (counts)
+fam.usc <- round(fam.rel*counts[15:45,"counts.av"],2)
+
 
 ## Averaged Data ####
 fam.av <- aggregate(fam[sapply(fam,is.numeric)], list(env1$field.ID),mean)
@@ -138,7 +145,7 @@ fam.pa <- decostand(fam, "pa")
 fam.sum <- apply(fam.pa,2,sum)
 sort(fam.sum)
 # remove species that occur at less than 5 sites
-fam.av.fin <- fam.av[, !fam.sum<5]
+fam.fin <- fam[, !fam.sum<5]
 
 ### Averaged Data
 # presence-absence transformation to calculate species number per site

@@ -1,14 +1,18 @@
-###########################
+#%%%%%%%%%%%%%%%%%%%%%%%%%%
 # F2 Nematodes
 # EDA
 # Quentin Schorpp
 # 06.08.2015
-###########################
+#%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Load data ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 source("Data/RMakeLikeFile.R")
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#***********************************************Environmental Data**************************************************************************####
 
-# Cross Tables to reveal the nested structure
+# Cross Tables to reveal the nested structure and/or balanced designs
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 tapply(indices$N,list(env1$age_class, env1$samcam),length)
@@ -18,7 +22,64 @@ tapply(indices$N,list(env1$field.ID, env1$samcam),length)   # field.ID is partly
 tapply(indices$N,list(env1$crop, env1$samcam),length)
 tapply(indices$N,list(env1$field.ID, env1$crop),length)
 tapply(indices$N,list(env1$age_class, env1$crop),length)   # crop and age_class are correlated
+
+
+tapply(indices$N,list(env1$field.ID, env1$age_class),length)
+tapply(indices$N,list(env1$field.ID, env1$crop),length)
+tapply(indices$N,list(env1$field.ID, env1$n),length)
+tapply(indices$N,list(env1$field.ID, env1$c),length)
+tapply(indices$N,list(env1$field.ID, env1$clay),length)
+
+tapply(indices$N,list(env1$field.ID, env1$pH),length)
+tapply(indices$N,list(env1$field.ID, env1$intensity),length)
+tapply(indices$N,list(env1$field.ID, env1$fertilisation),length)
+tapply(indices$N,list(env1$field.ID, env1$ata1),length)
+tapply(indices$N,list(env1$field.ID, env1$ata2),length)
+tapply(indices$N,list(env1$field.ID, env1$hum2),length)
+tapply(indices$N,list(env1$field.ID, env1$prec1),length)
+
+# also possible with 
+# table(env1$field.ID, env1$prec1)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# Pair Plots to check variable correlations
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Tes set
+env.num <- env.fin[sapply(env.fin,is.numeric)]
+
+# Pearson r linear correlation among environmentla variables
+env.pearson <- cor(env.num)
+round(env.pearson,2)
+
+# Reorder the variables prior to plotting
+env.o <- gclus::order.single(env.pearson)
+
+# Pearson Correlation matrix
+op <- par(mfrow=c(1,1), pty="s")
+pairs(env.fin, lower.panel=panel.smooth, upper.panel=panel.cor, diag.panel=panel.hist, main="Pearson Correlation Matrix")
+par(op)
+
+# Kendall Correlation matrix
+env.ken <- cor(env.num, method="kendall")
+
+# Reorder the variables prior to plotting
+env.o <- gclus::order.single(env.ken)
+
+# Kendall Correlation matrix
+op <- par(mfrow=c(1,1), pty="s")
+pairs(env.fin, lower.panel=panel.smooth, upper.panel=panel.cor, diag.panel=panel.hist, main="Kendall Correlation Matrix")
+par(op)
+
+# C and N together is not valid
+# Age_class and intensity, is doubtful
+# Clay and age_class is ok, if the treshhold is above 0.5
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
 
 # Creating a grouped Data Object ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -27,17 +88,19 @@ data <- cbind(indices, env.fin)
 
 data <- groupedData(PPI ~ age_class | field.ID, data)
 str(data)
-
+#Purpose??
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+#***********************************************Families/response Data**********************************************************************####
 
 
-# With this file i also aim to figure out, if everaging over repeated measurements confounds my results.
+# Here I Also try to figure out, if averaging over repeated measurements confounds my results.
 
-# Question In which direction change the nematode species from 2012 to 2013?
+# Question: In which direction change the nematode species from 2012 to 2013?
 # Are there general trends?
 
+# Change data ####
 # Change (slope) between two samples from year 1 and year 2. X1=1, X2=2  <- nominator is always 1, hence the slope is the change in y ( i.e. the difference between y2 - y1)
 fam.slope <- fam[!env1$crop=="Maize",]
 
@@ -80,6 +143,7 @@ for (i in 1:25) {
 # Telotylenchidae and Hoplolaimidae seem antagonistic
 
 
+# Averaged Data ####
 
 par(mfrow=c(5,5))
 for (i in 1:25) {
@@ -152,3 +216,45 @@ abline(h=0,col="red")
 par(mfrow=c(1,1))
 boxplot(counts[!env2$samcam==1,]$counts.av ~ env2[!env2$samcam==1,]$age, main="total abundance")
 abline(h=0,col="red")
+
+
+# Upscaled data ####
+par(mfrow=c(5,5))
+for (i in 1:25) {
+  boxplot(fam.usc[,i] ~ env1$age_class, main=names(fam.slope)[i])
+  abline(h=0,col="red")
+  title(main="Change in Nematode rel. abundance",outer=T)
+}
+
+par(mfrow=c(5,5))
+for (i in 1:25) {
+  boxplot(fam.usc[,i]~ env1$age, main=names(fam.slope)[i])
+  abline(h=0,col="red")
+  title(main="Change in Nematode rel. abundance",outer=T)
+}
+
+
+# Growth rates
+fam.usc.slope <- fam.usc[!env1$crop=="Maize",]
+
+fam.usc.slope <- fam.usc.slope[13:24,] - fam.usc.slope[1:12,]
+
+fam.usc.gr <- fam.usc.slope/fam.usc[1:12,]
+fam.usc.gr[is.na(fam.usc.gr)] <- 0
+fam.usc.gr[mapply(is.infinite, fam.usc.gr)]  <- 0
+
+par(mfrow=c(5,5))
+for (i in 1:25) {
+  boxplot(fam.usc.gr[,i] ~ env1$age_class[1:12], main=names(fam.slope)[i])
+  abline(h=0,col="red")
+  title(main="Change in Nematode rel. abundance",outer=T)
+}
+
+par(mfrow=c(5,5))
+for (i in 1:25) {
+  boxplot(fam.usc.gr[,i], main=names(fam.slope)[i])
+  abline(h=0,col="red")
+  title(main="Change in Nematode rel. abundance",outer=T)
+}
+
+

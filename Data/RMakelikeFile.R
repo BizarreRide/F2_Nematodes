@@ -5,5 +5,5 @@
 # 06.08.2015
 ###########################
 
-source("analysis/RequiredPackages.R")
-source("data/DataProcessing.R")
+source("Analysis/Sources/RequiredPackages.R")
+source("Data/DataProcessing.R")
