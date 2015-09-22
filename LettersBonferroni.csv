@@ -1,11 +1,13 @@
-"","N","MI","MI2.5","PPI","summedMI","summedMI2.5","PPI.MI","BI","EI","SI","CI","NCR","SR","rarefy","H","D","J","H1"
-"A_Cm.2","a","a","a","a","a","a","ab","a","a","a","a","a","a","a","ac","ac","ab","ab"
-"B_Sp_young.2","a","a","a","a","a","a","ab","a","a","a","a","a","a","a","ac","ac","ab","ab"
-"C_Sp_int1.2","a","a","a","a","a","a","b","a","a","a","a","a","a","a","c","bc","b","b"
-"D_Sp_int2.2","a","a","a","a","a","a","ab","a","a","a","a","a","a","a","ab","ab","ac","ac"
-"E_Sp_old.2","a","a","a","b","a","a","ab","a","a","a","a","a","a","a","a","a","a","a"
-"A_Cm.4","a","a","a","a","a","a","ab","a","a","a","a","a","a","a","ac","ac","ab","ab"
-"B_Sp_young.4","a","a","a","a","a","a","a","a","a","a","a","a","a","a","bc","bc","ab","ab"
-"C_Sp_int1.4","a","a","a","ab","a","a","ab","a","a","a","a","a","a","a","bc","bc","bc","bc"
-"D_Sp_int2.4","a","a","a","a","a","a","ab","a","a","a","a","a","a","a","c","c","b","b"
-"E_Sp_old.4","a","a","a","b","a","a","ab","a","a","a","a","a","a","a","bc","bc","bc","bc"
+;carnivore;bacterivore;fungivore;herbivore;omnivore;N;MI;MI2.5;PPI;summedMI;summedMI2.5;PPI.MI;BI;EI;SI;CI;NCR;SR;rarefy;H;D;J;H1
+2012;;;;;;;;;;;;;;;;;;;;;;;
+A_Cm;ac;ac;ac;ac;ac;a;a;a;a;a;a;ab;a;a;a;a;a;a;a;ac;ac;ab;ab
+B_Sp_young ;bc;bc;bc;bc;bc;a;a;a;a;a;a;ab;a;a;a;a;a;a;a;ac;ac;ab;ab
+C_Sp_int1 ;c;c;c;c;c;a;a;a;a;a;a;b;a;a;a;a;a;a;a;c;bc;b;b
+D_Sp_int2 ;ab;ab;ab;ab;ab;a;a;a;a;a;a;ab;a;a;a;a;a;a;a;ab;ab;ac;ac
+E_Sp_old ;a;a;a;a;a;a;a;a;b;a;a;ab;a;a;a;a;a;a;a;a;a;a;a
+2013;;;;;;;;;;;;;;;;;;;;;;;
+A_Cm ;ac;ac;ac;ac;ac;a;a;a;a;a;a;ab;a;a;a;a;a;a;a;ac;ac;ab;ab
+B_Sp_young ;bc;bc;bc;bc;bc;a;a;a;a;a;a;a;a;a;a;a;a;a;a;bc;bc;ab;ab
+C_Sp_int1 ;c;c;c;c;c;a;a;a;ab;a;a;ab;a;a;a;a;a;a;a;bc;bc;bc;bc
+D_Sp_int2 ;c;c;c;c;c;a;a;a;a;a;a;ab;a;a;a;a;a;a;a;c;c;b;b
+E_Sp_old ;bc;bc;bc;bc;bc;a;a;a;b;a;a;ab;a;a;a;a;a;a;a;bc;bc;bc;bc

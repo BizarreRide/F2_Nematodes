@@ -251,7 +251,8 @@ do.call(gridExtra::grid.arrange, pl[c(4,7,15,16,17,18)])
 # Feeding Types ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fety2 <- droplevels(cbind(fety,env.fin))
+fety.av <- fety/indices$N
+fety2 <- droplevels(cbind(fety.av,env.fin))
 str(fety2)
 
 f.stats.glmer3 <- matrix(NA,12,7)
@@ -279,7 +280,7 @@ colnames(f.stats.glmer3)[2] <- colnames(p.stats.glmer3)[2] <- "Df"
 LettersFety <- matrix(NA,10,5)
 for(i in 1:5) {
   fety2$x <- fety2[,i]
-  model <- lmer(log1p(x) ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2) 
+  model <- lmer(log1p(x) ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), fety2) 
   x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "fdr"))
   nam <- paste("glht",i,names(fety[i]), sep = ".")
   assign(nam, x)

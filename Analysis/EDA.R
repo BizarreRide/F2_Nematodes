@@ -258,3 +258,60 @@ for (i in 1:25) {
 }
 
 
+#***********************************************Indices**********************************************************************####
+
+x11()
+par(mfrow=c(4,5))
+
+for(i in 1:18) {
+  boxplot(indices[,i] ~ interaction(env1$age_class,env1$samcam), indices)
+  title(colnames(indices)[i])
+}
+
+x11()
+par(mfrow=c(4,5))
+
+for(i in 1:18) {
+  scatter.smooth(env1$age, indices[,i])
+  title(colnames(indices)[i])
+}
+
+x11()
+par(mfrow=c(3,2))
+
+for(i in 1:5) {
+  scatter.smooth(env1$age, fety[,i])
+  title(colnames(fety)[i])
+}
+
+
+
+
+
+indices.av <- aggregate(indices,list(env1$field.ID),mean)
+fety.av <- aggregate(fety,list(env1$field.ID),mean)
+
+x11()
+par(mfrow=c(4,5))
+
+for(i in 2:19) {
+  boxplot(indices.av[,i] ~ env.av$age_class, indices.av)
+  title(colnames(indices.av)[i])
+}
+
+
+x11()
+par(mfrow=c(2,3))
+
+for(i in 2:6) {
+  boxplot(fety.av[,i] ~ env.av$age_class, fety.av)
+  title(colnames(fety.av)[i])
+}
+
+#***********************************************Feeding types**********************************************************************####
+
+boxplot(fety$fungivore ~ interaction(env1$age_class,env1$samcam))
+
+
+
+
