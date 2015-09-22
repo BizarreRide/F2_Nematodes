@@ -251,18 +251,25 @@ do.call(gridExtra::grid.arrange, pl[c(4,7,15,16,17,18)])
 # Feeding Types ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+env.sc <- env.fin[,sapply(env.fin,is.numeric)]
+env.sc <- data.frame(scale(env.sc, center=TRUE, scale=TRUE))
+env.sc <- cbind(env.fin[,!sapply(env.fin,is.numeric)],env.sc)
+str(env.sc)
+
+
 fety.av <- fety/indices$N
 fety2 <- droplevels(cbind(fety.av,env.fin))
+fety2 <- droplevels(cbind(fety,env.sc, N=indices$N))
 str(fety2)
 
-f.stats.glmer3 <- matrix(NA,12,7)
-p.stats.glmer3 <- matrix(NA,12,7)
+f.stats.glmer3 <- matrix(NA,9,7)
+p.stats.glmer3 <- matrix(NA,9,7)
 
 for(i in 1:5) {
   fety2$y <- fety2[,i]
-  model <- lmer(log1p(y) ~ age_class*samcam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID),fety2)
+  model <- glmer(y/N ~ age_class*samcam + pH + c + mc + clay + fertilisation + (1|field.ID),weights=N,family="binomial",fety2,control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
   print(summary(model))
-  nam <- paste("lme",i,names(indices[i]), sep = ".")
+  nam <- paste("lme",i,names(fety2[i]), sep = ".")
   assign(nam, model)
   f.stats.glmer3[,i+2] <- round(Anova(model, type = "III")$"Chisq",2)
   p.stats.glmer3[,i+2] <- round(Anova(model, type = "III")$"Pr(>Chisq)",3)
@@ -279,20 +286,22 @@ colnames(f.stats.glmer3)[2] <- colnames(p.stats.glmer3)[2] <- "Df"
 # Post Hoc Tukey Test with false discovery rate adjustment
 LettersFety <- matrix(NA,10,5)
 for(i in 1:5) {
-  fety2$x <- fety2[,i]
-  model <- lmer(log1p(x) ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), fety2) 
-  x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "fdr"))
+  fety2$x <- fety2[,1]
+  model <- glmer(x/N ~ agsam + (1|field.ID),weights=N,family="binomial",fety2,control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000))) 
+  x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "none"))
   nam <- paste("glht",i,names(fety[i]), sep = ".")
   assign(nam, x)
   x <- cld(x)$mcletters
   xx <- x$Letters
-  LettersFety[,i] <- xx
+  LettersFety[,3] <- xx
   row.names(LettersFety) <- levels(env.fin$agsam)
 }
 colnames(LettersFety) <- colnames(fety)
 
+glht.3.fungivore
 #write.csv(LettersFety, file="LettersFety.csv")
 
+plot(cld(x))
 
 
 
