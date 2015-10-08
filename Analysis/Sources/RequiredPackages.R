@@ -17,6 +17,9 @@ library(lme4)
 library(car)
 library(extrafont)
 library(BiodiversityR)
+library(reshape2)
+library(dplyr)
+library(tidyr)
 
 # Functions:
 source("Analysis/sources/cleanplot.pca.R")

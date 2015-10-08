@@ -13,26 +13,131 @@ source("data/RMAkeLikeFile.R")
 # take the values of a data frame and multiply them by a coefficient in column B of the mastertable, if their colnames matches the name of column A in the mastertable
 
 master <- read.csv("Data/F2_Nema_MastertableFam.csv", sep=";")
+master$c.p <- as.factor(master$c.p)
 
-master$bwt <- 0
-master$bwt[master$FeedingType %in% c(2,3) & master$c.p==2] <- 0.8
+# s,e and b weighings ####
+# The following code aims to assign weightings (values 0.8, 3.2,5,..) to certain combination of feeding Type and c-p values
+# i.e. Fu2  <-  0.8.
+# However, not all these combinations get a weighting!
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-master$ewt <- 0
-master$ewt[master$FeedingType==2 & master$c.p==2] <- 0.8
-master$ewt[master$FeedingType==3 & master$c.p==1] <- 3.2
+# data.frames with weightings
 
-master$swt <- 0
-master$swt[master$FeedingType == 5 & master$c.p==4] <- 3.2
-master$swt[master$FeedingType == 5 & master$c.p==5] <- 5
-master$swt[master$FeedingType == 8 & master$c.p==4] <- 3.2
-master$swt[master$FeedingType == 8 & master$c.p==5] <- 5
-master$swt[master$FeedingType == 2 & master$c.p==3] <- 1.8
-master$swt[master$FeedingType == 2 & master$c.p==4] <- 3.2
-master$swt[master$FeedingType == 5 & master$c.p==4] <- 3.2
+bwt <- data.frame(
+  FeedingType=as.factor(c(2,3)),
+  c.p=as.factor(c(2,2)),
+  bwt=c(0.8,0.8))
+
+swt <- data.frame( 
+  FeedingType=as.factor(c(2,2,5,5,8,8)),
+  c.p=as.factor(c(3,4,4,5,4,5)),
+  swt=c(1.8,3.2,3.2,5,3.2,5))
+
+ewt <- data.frame(
+  FeedingType=as.factor(c(2,3)),
+  c.p=as.factor(c(2,1)),
+  ewt=c(0.8,3.2))
+
+cwt <- data.frame(
+  FeedingType=as.factor(2),
+  c.p=as.factor(2),
+  cwt=0.8)
+
+
+# assign weightings to master table
+master <- master %>% 
+  full_join(bwt, by=c("FeedingType","c.p"), nomatch="0") %>%
+  full_join(swt, by=c("FeedingType","c.p"), nomatch="0") %>%
+  full_join(ewt, by=c("FeedingType","c.p"), nomatch="0") %>%
+  full_join(cwt, by=c("FeedingType","c.p"), nomatch="0") 
+
+master[is.na(master)] <- 0
 
 str(master)
 
+# multiply abundances by their weights
 
+
+
+# calculate  b, e and s , the sums of the weighted (relative?) abundances.
+
+
+FaPro <- fam %>% 
+  add_rownames("ID") %>% 
+  gather(Family, Value, -ID) %>% #convert to long format
+  inner_join(master, by = "Family") %>% 
+  mutate(b=Value*bwt, s=Value*swt, e=Value*ewt, c=Value*cwt) %>%
+  group_by(ID.x) %>% 
+  summarise(b=sum(b), s = sum(s),  e=sum(e), c=sum(c)) %>%
+  mutate(BI=100*b/(b+e+s), SI=100*(s/(s+b)), EI=(100*(e/(e+b))), CI=100*(c/e))
+FaPro
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Maturity Index ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+MI.sum <- fam %>% 
+  add_rownames("ID") %>% 
+  gather(Family, Value, -ID) %>% #convert to long format
+  inner_join(master, by = "Family") %>% 
+  filter(MI.PPI == "MI") %>% 
+  group_by(ID.x) %>% 
+  summarise(Total = sum(Value))
+
+
+MI.matrix <- matrix(NA,30,25)
+
+# c-p weighting of relative abundances
+for (i in 1:25){
+  for (j in 1:30){
+    if (colnames(fam)[i] == master[j,2]) {
+      MI.matrix[,i] <- fam[,i]*master[j,4]/MI.sum
+    }
+  }
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# Example from Thierry ####
+# calculate summed abundances only for species that count for the MI
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+library(dplyr)
+library(tidyr)
+data(varespec, package = "vegan")
+attributes <- data.frame(
+  Species = c(colnames(varespec), "spec1", "spec2"),
+  Attribute = c(rep(c("MI", "PI"), c(14, 30)), "MI", "PI")
+)
+varespec %>% 
+  add_rownames("ID") %>% 
+  gather(Species, Value, -ID) %>% #convert to long format
+  inner_join(attributes, by = "Species") %>% 
+  filter(Attribute == "MI") %>% 
+  group_by(ID) %>% 
+  summarise(Total = sum(Value))
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
+
+fam %>% 
+  add_rownames("ID") %>% 
+  gather(Family, Value, -ID) %>% #convert to long format
+  full_join(master, by = "Family") %>% 
+  group_by(ID.x) %>% 
+  summarise(EI = sum(Value))
+
+  summarise(EI = 100*(sum(ewt)/(sum(ewt)+sum(bwt))))
 
 
 
@@ -74,7 +179,7 @@ tfam <- data.frame(t(fam))
 
 for (i in 1:25){
   for (j in 1:30){
-44444444444444444444447if (rownames(tfam)[i]==rownames(master)[j]){
+ if (rownames(tfam)[i]==rownames(master)[j]){
       tfam$mat<- master[,5]
 }}}
 
