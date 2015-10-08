@@ -17,13 +17,14 @@ env.x <- env.av.fin[,c(2,3)]
 ffam <- fam/indices$N
 ffam.av <- fam.av/rowSums(fam.av)
 
-fam.hel <- decostand(fam.fin, "hel")
+fam.hel <- decostand(fam.rel, "hel")
 fam.ch <- decostand(fam.fin, "norm")
 fam.rel.ch <- decostand(fam.rel, "norm")
 #fam.rel.hel <- decostand(fam.rel, "norm")
 fam.bc <- vegdist(fam.fin, "bray")
 
 require(mvpart)
+devtools::install_github("cran/mvpart")
 fam.mvpart <- mvpart(data.matrix(fam.fin) ~ ., env.fin[,-1], margin=0.08, cp=0, xv="pick", xval=10, xvmult=100, which=4)
 fam.mvpart <- mvpart(data.matrix(fam.rel) ~ ., env.fin[,-1], margin=0.08, cp=0, xv="pick", xval=10, xvmult=500, which=4)
 fam.mvpart <- mvpart(data.matrix(fam.ch) ~ ., env.fin[,-1], margin=0.08, cp=0, xv="pick", xval=10, xvmult=500, which=4)

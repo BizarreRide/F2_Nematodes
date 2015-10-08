@@ -10,7 +10,6 @@
 source("data/RMAkeLikeFile.R")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# ANalysis of Nematode Indices
 
 # Data processing
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -18,7 +17,6 @@ source("data/RMAkeLikeFile.R")
 # create interaction factor for interaction between age_class and samcam, 
 # to see if age_class effects stay constant
 env.fin$agsam <- with(env.fin, interaction(age_class,samcam))
-
 
 indices2 <- droplevels(cbind(indices,env.fin))
 str(indices2)
@@ -47,6 +45,10 @@ legend(0.5,1,legend=c("A_Cm","SP_Y","SP_I1","SP_I2","SP_O"),lty=c(1,2,3),col=1:5
 # Model formulas to be used
 # model formula: y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
 # model formula2: y ~ age + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
+
+
+#NCR is a precentage and should be analysed with binomial glm
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -66,20 +68,14 @@ any(b<0.05)
 # Repeated measurments ANOVA 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-x <- aov(indices[!env.fin$crop=="Maize",1] ~ age_class*samcam + + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID/samcam), ev)
-summary(x)
-
-
-
-
 # create Matrix to extract F-Values
-f.stats <- matrix(NA,length(),19)
+f.stats <- matrix(NA,11,19)
 # create Matrix to extract p-Values
 p.stats <- matrix(NA,11,19)
 
 # rmANOVAs
 for (i in 1:18) {
-  x <-  aov(indices[,i] ~ age_class+ Error(field.ID/samcam), env.fin) #*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 
+  x <-  aov(indices[,i] ~ age_class + Error(field.ID/samcam), env.fin) #*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 
   print(names(indices[i]))
   print(summary(x))
   nam <- paste("rmAOV",i,names(indices[i]), sep = ".")
@@ -170,11 +166,12 @@ colnames(f.stats.lmer2)[2] <- colnames(p.stats.lmer2)[2] <- "Df"
 #write.csv(f.stats.lmer2, file="Chi2-WertelmerII.csv")
 
 # Anova Type III
-f.stats.lmer3 <- matrix(NA,12,20)
-p.stats.lmer3 <- matrix(NA,12,20)
+f.stats.lmer3 <- matrix(NA,9,20)
+p.stats.lmer3 <- matrix(NA,9,20)
 
 for(i in 1:18) {
   indices2$y <- indices2[,i]
+  #model <- gls(y ~ age_class*samcam + pH + c + mc + ata1, indices2) # reduced model, since fety delivers better reults with glm() and no random term
   model <- lmer(y ~ age_class*samcam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2)
   print(summary(model))
   nam <- paste("lme",i,names(indices[i]), sep = ".")
@@ -200,9 +197,10 @@ colnames(f.stats.lmer3)[2] <- colnames(p.stats.lmer3)[2] <- "Df"
 Letters <- matrix(NA,10,18)
 for(i in 1:18) {
   indices2$x <- indices2[,i]
-  model <- lme(x ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID, data=indices2)
-  #model <- lmer(x ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2) # No Difference
-  x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "fdr"))
+  #model <- lm(x ~ agsam + pH + c + mc + ata1, data=indices2)
+  #model <- lme(x ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID, data=indices2)
+  model <- lmer(x ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2) # No Difference
+  x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "bonferroni"))
   nam <- paste("glht",i,names(indices[i]), sep = ".")
   assign(nam, x)
   x <- cld(x)$mcletters
@@ -211,6 +209,26 @@ for(i in 1:18) {
   row.names(Letters) <- levels(env.fin$agsam)
 }
 colnames(Letters) <- colnames(indices)
+
+par(mar=c(5,5,7,2))
+plot(cld(glht.4.PPI))
+
+# NCR ####
+
+fety2$bacfu <- fety2$bacterivore + fety2$fungivore
+fety2$age_class <- as.ordered(fety2$age_class)
+
+model <- glmer(fungivore/bacfu ~ age_class*samcam + pH + c + mc + ata1 + (1|field.ID),weights=bacfu,family="binomial",fety2, control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
+#model <- glmer(y ~ age_class*samcam + pH + c + mc + ata1 + (1|field.ID),weights=N,family="binomial",fety2,control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
+print(summary(model))
+Anova(model, type = "III")
+
+model <- glmer(fungivore/bacfu ~ agsam + pH + c + mc + ata1 + (1|field.ID),weights=bacfu,family="binomial",fety2, control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
+x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "bonferroni"))
+par(mar=c(5,5,8,2))
+plot(cld(x))
+
+
 
 #write.csv(Letters, file="LettersFDR.csv")
 #write.csv(Letters, file="LettersBonferroni.csv")
@@ -258,20 +276,22 @@ str(env.sc)
 
 
 fety.av <- fety/indices$N
-fety2 <- droplevels(cbind(fety.av,env.fin))
+fety2 <- droplevels(cbind(fety.av,env.sc,N=indices$N))
+
 fety2 <- droplevels(cbind(fety,env.sc, N=indices$N))
 str(fety2)
 
-f.stats.glmer3 <- matrix(NA,9,7)
-p.stats.glmer3 <- matrix(NA,9,7)
+f.stats.glmer3 <- matrix(NA,7,7)
+p.stats.glmer3 <- matrix(NA,7,7)
 
 for(i in 1:5) {
   fety2$y <- fety2[,i]
-  model <- glmer(y/N ~ age_class*samcam + pH + c + mc + clay + fertilisation + (1|field.ID),weights=N,family="binomial",fety2,control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
+  model <- glm(y ~ age_class*samcam + pH + c + mc + ata1,weights=N,family="binomial",fety2)
+  #model <- glmer(y ~ age_class*samcam + pH + c + mc + ata1 + (1|field.ID),weights=N,family="binomial",fety2,control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
   print(summary(model))
   nam <- paste("lme",i,names(fety2[i]), sep = ".")
   assign(nam, model)
-  f.stats.glmer3[,i+2] <- round(Anova(model, type = "III")$"Chisq",2)
+  f.stats.glmer3[,i+2] <- round(Anova(model, type = "III")$"LR Chisq",2)
   p.stats.glmer3[,i+2] <- round(Anova(model, type = "III")$"Pr(>Chisq)",3)
 }
 f.stats.glmer3[,1] <- p.stats.glmer3[,1]  <- row.names(Anova(model, type="III"))
@@ -286,14 +306,15 @@ colnames(f.stats.glmer3)[2] <- colnames(p.stats.glmer3)[2] <- "Df"
 # Post Hoc Tukey Test with false discovery rate adjustment
 LettersFety <- matrix(NA,10,5)
 for(i in 1:5) {
-  fety2$x <- fety2[,1]
-  model <- glmer(x/N ~ agsam + (1|field.ID),weights=N,family="binomial",fety2,control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000))) 
+  fety2$x <- fety2[,i]
+  #model <- glmer(x ~ agsam + (1|field.ID),weights=N,family="binomial",fety2,control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000))) 
+  model <- glm(x ~ agsam + pH + c + mc + ata1,weights=N,family="binomial",fety2) 
   x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "none"))
   nam <- paste("glht",i,names(fety[i]), sep = ".")
   assign(nam, x)
   x <- cld(x)$mcletters
   xx <- x$Letters
-  LettersFety[,3] <- xx
+  LettersFety[,i] <- xx
   row.names(LettersFety) <- levels(env.fin$agsam)
 }
 colnames(LettersFety) <- colnames(fety)
@@ -301,8 +322,9 @@ colnames(LettersFety) <- colnames(fety)
 glht.3.fungivore
 #write.csv(LettersFety, file="LettersFety.csv")
 
-plot(cld(x))
-
+par(mar=c(5,4,10,2))
+plot(cld(glht.3.fungivore))
+plot(cld(glht.4.herbivore))
 
 
 require(reshape2)
@@ -325,4 +347,28 @@ with(fety, hist(fety$bacterivore))
 with(fety, hist(fety$herbivore))
 with(fety, hist(fety$omnivore))
 with(fety, hist(fety$fungivore))
+
+
+
+
+q <- aov(fungivore ~ age_class*samcam, fety2)
+summary(q)
+
+# NCR ####
+
+indices2$bacfu <- fety2$bacterivore + fety2$fungivore
+
+model <- glmer(fungivore/bacfu ~ age_class*samcam + pH + c + mc + ata1 + (1|field.ID),weights=bacfu,family="binomial",fety2, control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
+#model <- glmer(y ~ age_class*samcam + pH + c + mc + ata1 + (1|field.ID),weights=N,family="binomial",fety2,control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
+print(summary(model))
+Anova(model, type = "III")
+
+model <- glmer(fungivore/bacfu ~ agsam + pH + c + mc + ata1 + (1|field.ID),weights=bacfu,family="binomial",fety2, control=glmerControl(optimizer="bobyqa",optCtrl = list(maxfun = 100000)))
+x <- summary(glht(model, linfct=mcp(agsam="Tukey")), test = adjusted(type = "none"))
+par(mar=c(5,5,8,2))
+plot(cld(x))
+
+
+
+
 

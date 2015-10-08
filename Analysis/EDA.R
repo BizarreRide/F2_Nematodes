@@ -312,6 +312,21 @@ for(i in 2:6) {
 
 boxplot(fety$fungivore ~ interaction(env1$age_class,env1$samcam))
 
+boxplot(fety$fungivore~env1$field.ID)
+boxplot(fam.rel$Hoplolaimidae~env.fin$agsam)
+boxplot(fam$Telotylenchidae~env.fin$agsam)
+boxplot(fam$Tylenchidae~env.fin$agsam)
+boxplot(fam$env.fin$agsam)
+boxplot(indices$NCR~env1$field.ID)
+boxplot(indices$NCR~env.fin$agsam)
 
+boxplot(indices$PPI~env.fin$agsam)
+boxplot(indices$MI~env.fin$agsam)
+boxplot(indices$MI2.5~env.fin$agsam)
+boxplot(indices$summedMI~env.fin$agsam)
+boxplot(indices$MI~env.fin$age_class)
 
+plot(indices2$SI, indices2$EI)
 
+hefubac <- subset(fety, select = c("herbivore","fungivore","bacterivore")) 
+ade4::triangle.plot(hefubac)
