@@ -15,28 +15,30 @@ source("Data/RMakeLikeFile.R")
 # Cross Tables to reveal the nested structure and/or balanced designs
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-tapply(indices$N,list(env1$age_class, env1$samcam),length)
-tapply(indices$N,list(env1$field.ID,env1$age_class),length) # field.ID is nested in age_class
-tapply(indices$N,list(env1$field.ID, env1$samcam),length)   # field.ID is partly nested in samcam (Maize field!)
+tapply(biodiv$N,list(env1$age_class, env1$samcam),length)
+tapply(biodiv$N,list(env1$field.ID,env1$age_class),length) # field.ID is nested in age_class
+tapply(biodiv$N,list(env1$field.ID, env1$samcam),length)   # field.ID is partly nested in samcam (Maize field!)
 
-tapply(indices$N,list(env1$crop, env1$samcam),length)
-tapply(indices$N,list(env1$field.ID, env1$crop),length)
-tapply(indices$N,list(env1$age_class, env1$crop),length)   # crop and age_class are correlated
+tapply(biodiv$N,list(env1$crop, env1$samcam),length)
+tapply(biodiv$N,list(env1$field.ID, env1$crop),length)
+tapply(biodiv$N,list(env1$age_class, env1$crop),length)   # crop and age_class are correlated
 
 
-tapply(indices$N,list(env1$field.ID, env1$age_class),length)
-tapply(indices$N,list(env1$field.ID, env1$crop),length)
-tapply(indices$N,list(env1$field.ID, env1$n),length)
-tapply(indices$N,list(env1$field.ID, env1$c),length)
-tapply(indices$N,list(env1$field.ID, env1$clay),length)
+tapply(biodiv$N,list(env1$field.ID, env1$n),length)       # C and n was only measured once for all silphie fields
+tapply(biodiv$N,list(env1$field.ID, env1$c),length)       # Only Maize fields have individual measurements
+tapply(biodiv$N,list(env1$field.ID, env1$clay),length)    # similar for clay
+                                                          # c, n and grain size is probably more useful in Analysis of averaged data
 
-tapply(indices$N,list(env1$field.ID, env1$pH),length)
-tapply(indices$N,list(env1$field.ID, env1$intensity),length)
-tapply(indices$N,list(env1$field.ID, env1$fertilisation),length)
-tapply(indices$N,list(env1$field.ID, env1$ata1),length)
-tapply(indices$N,list(env1$field.ID, env1$ata2),length)
-tapply(indices$N,list(env1$field.ID, env1$hum2),length)
-tapply(indices$N,list(env1$field.ID, env1$prec1),length)
+        
+tapply(biodiv$N,list(env1$field.ID, env1$intensity),length)
+tapply(biodiv$N,list(env1$field.ID, env1$fertilisation),length) # fertilisation should probably be treated as factor
+
+tapply(biodiv$N,list(env1$field.ID, env1$pH),length)
+tapply(biodiv$N,list(env1$field.ID, env1$mc),length)
+tapply(biodiv$N,list(env1$field.ID, env1$ata1),length)    
+tapply(biodiv$N,list(env1$field.ID, env1$ata2),length)
+tapply(biodiv$N,list(env1$field.ID, env1$hum2),length)
+tapply(biodiv$N,list(env1$field.ID, env1$prec1),length)     # climate data and soil chemistry is sample specific
 
 # also possible with 
 # table(env1$field.ID, env1$prec1)
@@ -46,7 +48,7 @@ tapply(indices$N,list(env1$field.ID, env1$prec1),length)
 # Pair Plots to check variable correlations
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Tes set
+# Test set
 env.num <- env.fin[sapply(env.fin,is.numeric)]
 
 # Pearson r linear correlation among environmentla variables
@@ -79,8 +81,6 @@ par(op)
 
 
 
-
-
 # Creating a grouped Data Object ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -102,22 +102,24 @@ str(data)
 
 # Change data ####
 # Change (slope) between two samples from year 1 and year 2. X1=1, X2=2  <- nominator is always 1, hence the slope is the change in y ( i.e. the difference between y2 - y1)
-fam.slope <- fam[!env1$crop=="Maize",]
+fam.slope <- fam.org[!env1$crop=="Maize",]
 
 fam.slope <- fam.slope[13:24,] - fam.slope[1:12,]
 
-par(mfrow=c(5,5))
+par(mfrow=c(5,5),
+    mar=c(2,2,2,2),
+    oma=c(0.5,0.5,2,0.5))
+
 for (i in 1:25) {
   boxplot(fam.slope[,i] ~ env1$age_class[1:12], main=names(fam.slope)[i])
   abline(h=0,col="red")
-  title(main="Change in Nematode rel. abundance",outer=T)
+  title(main="Change in Nematode dominance",outer=T)
 }
 
-par(mfrow=c(5,5))
 for (i in 1:25) {
   boxplot(fam.slope[,i], main=names(fam.slope)[i])
   abline(h=0,col="red")
-  title(main="Change in Nematode rel. abundance",outer=T)
+  title(main="Change in Nematode dominance",outer=T)
 }
 
 

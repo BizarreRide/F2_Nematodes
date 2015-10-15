@@ -43,8 +43,8 @@ mytheme =
         strip.text.x = element_text(size=8,  colour="white", face="italic"),
         strip.text.y = element_text(size=8,  colour="white", face="italic"),
         axis.text.x = element_text(size=7),
-        axis.title.x = element_text(size=8,face="bold", family="Times New Roman"),
-        axis.text.y = element_text(size=7),
+        axis.title.x = element_text(size=8, family="Times New Roman"),
+        axis.text.y = element_text(size=7,  family="Times New Roman"),
         axis.title.y = element_text(size=8, family="Times New Roman"),
         axis.line = element_line(size=0.25),
         axis.ticks = element_line(size=0.25),
@@ -58,3 +58,27 @@ mytheme =
         legend.text=element_text(size=8,face="italic", family="Times New Roman"),
         legend.title=element_text(size=8))
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Additional functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Indices ####
+# Calculate and add biodiversity Indices
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+biodiv.fun <- function(data) data.frame(
+  SR = rowSums(data >0),                              # families Richness
+  rarefy = vegan::rarefy(data,90,se=F, MARGIN=1),     # rarefaction
+  H = vegan::diversity(data, index="shannon"),        # Shannon entropy
+  D = vegan::diversity(data, index="simpson"),        # simpson dominance
+  J = vegan::diversity(data, index="shannon")/log(rowSums(data >0)),     # Pielou Evenness
+  H1 = exp(vegan::diversity(data, index="shannon")),  # Hill's N1
+  N = rowSums(data))                     
+
+#************************************************************
+
+# Nematode Channel Ratio (NCR) ####
+NCR.fun <- function(data,bacterivore,fungivore) data$fungivore/(data$bacterivore+data$fungivore)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

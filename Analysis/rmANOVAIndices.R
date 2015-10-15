@@ -13,42 +13,12 @@ source("data/RMAkeLikeFile.R")
 
 # Data processing
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 # create interaction factor for interaction between age_class and samcam, 
 # to see if age_class effects stay constant
 env.fin$agsam <- with(env.fin, interaction(age_class,samcam))
 
-indices2 <- droplevels(cbind(indices,env.fin))
+indices2 <- droplevels(cbind(indices,env.fin, location=env1$location))
 str(indices2)
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-# A Closer Look on NCR
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-means = tapply(indices2$NCR,
-               list(indices2$samcam, indices2$age_class),mean)
-means
-
-x11()
-x.axis = unique(indices2$samcam)
-par(fin=c(6.0,6.0),pch=18,mkh=.1,mex=1.5,
-    cex=1.2,lwd=3)
-matplot(c(1,4), c(0,1), type="n", 
-        xlab="Sampling Campaign (seasons)", ylab="NCR",
-        main= "Observed NCR Means")   
-matlines(x.axis,means,type='l',lty=c(1,2,3,4,5))
-matpoints(x.axis,means)    
-legend(0.5,1,legend=c("A_Cm","SP_Y","SP_I1","SP_I2","SP_O"),lty=c(1,2,3),col=1:5,bty='n')
-
-
-
-# Model formulas to be used
-# model formula: y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
-# model formula2: y ~ age + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
-
-
-#NCR is a precentage and should be analysed with binomial glm
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -68,55 +38,7 @@ any(b<0.05)
 # Repeated measurments ANOVA 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# create Matrix to extract F-Values
-f.stats <- matrix(NA,11,19)
-# create Matrix to extract p-Values
-p.stats <- matrix(NA,11,19)
-
-# rmANOVAs
-for (i in 1:18) {
-  x <-  aov(indices[,i] ~ age_class + Error(field.ID/samcam), env.fin) #*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 
-  print(names(indices[i]))
-  print(summary(x))
-  nam <- paste("rmAOV",i,names(indices[i]), sep = ".")
-  assign(nam, x)
-  f.stats[,i+1] <- round(summary(x)$'Error: field.ID'[[1]]$'F value',2)
-  p.stats[,i+1] <- round(summary(x)$'Error: field.ID'[[1]]$'Pr(>F)',3)
-}
-
-f.stats[,1] <- p.stats[,1]  <- row.names(summary(x)$'Error: field.ID'[[1]])
-colnames(f.stats)[2:19] <- colnames(p.stats)[2:19] <- colnames(indices)
-colnames(f.stats)[1] <- colnames(p.stats)[1] <- "Env"
-
-
-
-# TukeyHSD test
-
-for (i in 1:18) {
-  df <- get(paste("rmAOV",i,names(indices[i]), sep = "."))
-  x <- TukeyHSD(df)
-  print(cld(x))
-  }
-
-# No Tukey Tests for aov objects!!!
-
-y <- indices2[,1]
-ev <- env.fin
-y <- indices[!env.fin$crop=="Maize",1]
-ev <- env.fin[!env.fin$crop=="Maize",]
-x <- lme(y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1, random= ~1 | field.ID, correlation=corCompSymm(form=~1|field.ID),method="ML", ev)
-anova(x)
-x <- lme(y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1, random=list(field.ID=pdCompSymm(~samcam-1)), method="REML", ev)
-anova(x)
-
-
-indicesx 
-indices2 <- indices2[!env.fin$crop=="Maize",]
-indices2 <- indicesx
-
-#**********************************************************************************************************************************************
-
-# Repeat with glm from nlme package####
+# with glmm from nlme package####
 f.stats.lme <- matrix(NA,11,20)
 p.stats.lme <- matrix(NA,11,20)
 
@@ -140,7 +62,7 @@ colnames(f.stats.lme)[2] <- colnames(p.stats.lme)[2] <- "Df"
 #write.csv(f.stats.lme, file="Chi2-Wertelme.csv")
 
 
-# Repeat with glm from lme4 package####
+# Repeat with glmm from lme4 package####
 # Anova Type II
 require(lme4)
 f.stats.lmer2 <- matrix(NA,11,20)
@@ -148,7 +70,7 @@ p.stats.lmer2 <- matrix(NA,11,20)
 
 for(i in 1:18) {
   indices2$y <- indices2[,i]
-  model <- lmer(y ~ age_class*samcam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID), indices2)
+  model <- lmer(y ~ age_class*samcam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|field.ID) + (1|location), indices2)
   print(summary(model))
   nam <- paste("lme",i,names(indices[i]), sep = ".")
   assign(nam, model)
@@ -369,6 +291,33 @@ par(mar=c(5,5,8,2))
 plot(cld(x))
 
 
+# A Closer Look on NCR
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+means = tapply(indices2$NCR,
+               list(indices2$samcam, indices2$age_class),mean)
+means
+
+x11()
+x.axis = unique(indices2$samcam)
+par(fin=c(6.0,6.0),pch=18,mkh=.1,mex=1.5,
+    cex=1.2,lwd=3)
+matplot(c(1,4), c(0,1), type="n", 
+        xlab="Sampling Campaign (seasons)", ylab="NCR",
+        main= "Observed NCR Means")   
+matlines(x.axis,means,type='l',lty=c(1,2,3,4,5))
+matpoints(x.axis,means)    
+legend(0.5,1,legend=c("A_Cm","SP_Y","SP_I1","SP_I2","SP_O"),lty=c(1,2,3),col=1:5,bty='n')
+
+
+
+# Model formulas to be used
+# model formula: y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
+# model formula2: y ~ age + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + Error(field.ID)
+
+
+#NCR is a precentage and should be analysed with binomial glm
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
