@@ -7,8 +7,22 @@
 
 
 # Load Data ####
+# Load Data ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-source("Data/RMAkeLikeFile.R")
+source("Analysis/Sources/RequiredPackages.R")
+source("Data/DataProcessing/DataProcessing.R") 
+env1 <- droplevels(env.org[16:45,])
+source("Data/DataProcessing/EnvDataProcessing.R")
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# Calculate faunal profile Indices ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+data <- fam.org
+source("Data/DataProcessing/FamDatProcessing.R") 
+
+# Faunal Profile on subsample abundances
+fam.rel <- round(fam.rel*100,0) # choose basis data for faunal profile (.org, .rel, .usc)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -16,7 +30,7 @@ source("Data/RMAkeLikeFile.R")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Log x+1 transformation of species data
-fam.log <- log1p(fam)
+fam.log <- log1p(fam.usc)
 # centering species data
 fam.z <- data.frame(scale(fam.log))
 
@@ -504,15 +518,15 @@ decorana(fam.rel)
 fam.hel <- decostand(fam.fin, "hel")
 decorana(fam.hel)
 
-fam.db.repmes1 <- capscale(fam.rel  ~ .   + Condition(samcam), distance="bray", data=env.fin[,-1], add=T);ordiplot(fam.db.repmes1,type="p", scaling=1)
-fam.db.repmes0 <- capscale(fam.rel  ~ 1   + Condition(samcam), distance="bray", data=env.fin, add=T)
+fam.db.repmes1 <- capscale(fam.usc  ~ .   + Condition(samcam), distance="bray", data=env.fin[,-1], add=T);ordiplot(fam.db.repmes1,type="p", scaling=1)
+fam.db.repmes0 <- capscale(fam.usc  ~ 1   + Condition(samcam), distance="bray", data=env.fin, add=T)
 
 stepping <- ordiR2step(fam.db.repmes0, fam.db.repmes1,direction="forward", perm.max=200, pstep=1000,trace=F)
 #stepping <- ordistep(fam.db.repmes0, fam.db.repmes1,direction="both", perm.max=200, pstep=1000,trace=F)
 summary(stepping)
 anova(stepping)
 
-fam.db.repmes <- capscale(fam.rel ~ age_class + clay + Condition(samcam), distance="bray", data=env.fin[,-1], add=TRUE)
+fam.db.repmes <- capscale(fam.usc ~ age_class + Condition(samcam), distance="bray", data=env.fin[,-1], add=TRUE)
 summary(fam.db.repmes)
 
 anova(fam.db.repmes, step=1000, perm.max=1000)
@@ -540,6 +554,39 @@ colvec1 <- palette()[1:5]
 #colvec1 <- brewer.pal(5, "Set1")
 colvec <- rep(rep(colvec1, each=3),2)
 
+# Mit Constraints scores ####
+par(mfrow=c(1,1))
+plot1 <- ordiplot(fam.db.repmes,type="p", scaling=1, display=c("sp","lc","cn")) #, display=c("sp","lc","cn")
+ordiequilibriumcircle(fam.db.repmes,plot1)
+identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
+points(plot1, "constraints", pch=25, bg=colvec, cex=1) 
+legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
+
+plot2 <- ordiplot(fam.db.repmes,type="p",display=c("sp","lc","cn"), scaling=2)
+ordiequilibriumcircle(fam.db.repmes,plot2)
+identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
+points(plot1, "sites", pch=25, bg=colvec, cex=1) 
+legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
+
+
+
+# Mit weighted averages scores ####
+par(mfrow=c(1,1))
+plot1 <- ordiplot(fam.db.repmes,type="p", scaling=1, display=c("wa","sp"), main="Scaling 1 wa scores") #, display=c("sp","lc","cn")
+ordiequilibriumcircle(fam.db.repmes,plot1)
+identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
+points(plot1, "sites", pch=25, bg=colvec, cex=1) 
+legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
+
+plot2 <- ordiplot(fam.db.repmes,type="p", scaling=2)
+ordiequilibriumcircle(fam.db.repmes,plot2)
+identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
+points(plot1, "sites", pch=25, bg=colvec, cex=1) 
+legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
+
+cleanplot.pca(fam.db.repmes)
+
+
 par(mfrow=c(1,1))
 plot1 <- ordiplot(fam.db.repmes,type="p", scaling=1, display=c("sp","lc","cn")) #, display=c("sp","lc","cn")
 ordiequilibriumcircle(fam.db.repmes,plot1)
@@ -548,14 +595,12 @@ points(plot1, "constraints", pch=25, bg=colvec, cex=1)
 legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
 
 
-
 plot1 <- ordiplot(fam.db.repmes,type="p", scaling=2)
 ordiequilibriumcircle(fam.db.repmes,plot1)
 identify(plot1,"sp", labels=names(fam.fin), cex=1.0)
 points(plot1, "sites", pch=25, bg=colvec, cex=1) 
 legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
 
-cleanplot.pca(fam.db.repmes)
 
 require(vegan3d)
 plot3d <- ordiplot3d(fam.db.repmes, scaling=2, angle=50, type="n")
