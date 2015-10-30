@@ -7,16 +7,16 @@
 
 
 # Load Data ####
-# Load Data ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 source("Analysis/Sources/RequiredPackages.R")
 source("Data/DataProcessing/DataProcessing.R") 
 env1 <- droplevels(env.org[16:45,])
 source("Data/DataProcessing/EnvDataProcessing.R")
+env.fin$n <-  env1$n
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# Calculate faunal profile Indices ####
+#  ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 data <- fam.org
 source("Data/DataProcessing/FamDatProcessing.R") 
@@ -71,13 +71,13 @@ par(mfrow=c(1,1))
 # In this Analysis, we remove them primarily to simplify the data set
 
 # presence-absence transformation to calculate species number per site
-fam.pa <- decostand(fam, "pa")
+fam.pa <- decostand(fam.usc, "pa")
 # calculate sum per species
 fam.sum <- apply(fam.pa,2,sum)
 sort(fam.sum)
 
 # remove species that occur at less than 5 sites
-fam.fin <- fam[, !fam.sum<5]
+fam.fin <- fam.usc[, !fam.sum<5]
 
 sort(apply(fam.fin, 2, max))
 # strong differences in order of magnitude of species abundances (?)
@@ -503,35 +503,61 @@ plot(fam.repmes, display=c("sp", "lc","cn"))
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ## 4. partial db-RDA ####
+# constrained Analysis of Principal Coordinates,CAP
 # to reduce the influence of repeated measurements and use the Bray Curtis distance 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# In `capscale`, all results on species are added after the analysis to the result that was found 
+# without information on species.
+# http://www.researchgate.net/post/How_do_I_calculate_the_fitness_of_species_when_using_the_capscale_function_vegan_package_of_R2
+
+
+
+
 # env.fin$age <- as.numeric(env.fin$age)
 #env.fin$field.ID <- as.numeric(env.fin$field.ID)
+#env.fin$field.ID <- as.numeric(env.fin$field.ID)
+#env.fin$field.ID2 <- as.factor(rep(c(1,2,3),10))
+#env.fin$field.ID2 <- as.factor(rep(c(1,2,3),10))
+#table(env.fin$field.ID2, env.fin$age_class)
+
 #env.fin$field.ID <- as.factor(env.fin$field.ID)
 #env.fin$field.ID <- as.factor(chartr("ABCDEFGHIA","1234567890",  env.fin$field.ID))
-str(env.fin)
 
-decorana(fam.fin)
-fam.rel <- fam.fin/indices$N
-decorana(fam.rel)
-fam.hel <- decostand(fam.fin, "hel")
-decorana(fam.hel)
+#fam.usc <- scale(fam.fin)
+decorana(fam.usc)
+# no unimodal relationship
 
-fam.db.repmes1 <- capscale(fam.usc  ~ .   + Condition(samcam), distance="bray", data=env.fin[,-1], add=T);ordiplot(fam.db.repmes1,type="p", scaling=1)
+fam.db.repmes1 <- capscale(fam.usc  ~ .   + Condition(samcam), distance="bray", data=env.fin[,-c(1,3,17)], add=T);ordiplot(fam.db.repmes1,type="p", scaling=1)
 fam.db.repmes0 <- capscale(fam.usc  ~ 1   + Condition(samcam), distance="bray", data=env.fin, add=T)
+
+anova(fam.db.repmes1, by = "term", step=1000, perm.max=1000)
+
+# bioenv() ??
 
 stepping <- ordiR2step(fam.db.repmes0, fam.db.repmes1,direction="forward", perm.max=200, pstep=1000,trace=F)
 #stepping <- ordistep(fam.db.repmes0, fam.db.repmes1,direction="both", perm.max=200, pstep=1000,trace=F)
 summary(stepping)
 anova(stepping)
 
-fam.db.repmes <- capscale(fam.usc ~ age_class + Condition(samcam), distance="bray", data=env.fin[,-1], add=TRUE)
-summary(fam.db.repmes)
+fam.db.repmes <- capscale(fam.usc ~ age_class + Condition(samcam), distance="bray", data=env.fin, add=TRUE)
+(fam.db.repmes2 <- capscale(fam.usc ~ age_class + pH + Condition(samcam), distance="bray", data=env.fin, add=TRUE))
+(fam.db.repmes2 <- capscale(fam.usc ~ age_class + pH + Condition(samcam + mc + clay + n), distance="bray", data=env.fin, add=TRUE))
 
-anova(fam.db.repmes, step=1000, perm.max=1000)
-anova(fam.db.repmes, by="axis", step=1000, perm.max=1000)
-# 2 axes are significant
+pro1 <- procrustes(fam.db.repmes, fam.db.repmes2)
+plot(pro1)
+summary(fam.db.repmes)
+#names(summary(fam.db.repmes))
+
+# Global Test, test of all canonical axes and test of environemtal variables
+anova(fam.db.repmes, step=1000, perm.max=1000)             # perm=1000, F=2.279, p=0.001
+anova(fam.db.repmes, by="axis", step=1000, perm.max=1000)  # 3 axes are significant
+                                                           # F=5.06, p = 0.001;F = 1.84, p=0.006; F = 1.61, p=0.04
+anova(fam.db.repmes, by="term", step=1000, perm.max=1000) # F=2.279, p=0.001; age_class is significant; same result like Global
+
+# The p value is computed as the proportion of the permuted values equal or larger than true (unpermuted value of the statistic)
+# for a one tailed test in the upper tail, like F-Test used in RDA.
+# pseudo-F test statistic used here
 
 # Notes:
 # If field.ID was taken as conditioning factor, then only the parameters: samcam, pH, mc, ata2, hum2, ata1, prec1, fertilisation and intensity, work.
@@ -539,22 +565,214 @@ anova(fam.db.repmes, by="axis", step=1000, perm.max=1000)
 #Error in cbind(x$CCA$v, x$CA$v) : number of rows of matrices must match (see arg 2)
 # If field.ID is the Condition() argument, and no SIlphie fields are included, I get the same error message.
 
-R2.all <- RsquareAdj(fam.db.repmes)$adj.r.squared
-RsquareAdj(fam.db.repmes1)
-RsquareAdj(fam.db.repmes0)
 RsquareAdj(fam.db.repmes)
+summary(fam.db.repmes)
+# R2adj = 0.1559868
+# 1st axis 0.1559868*0.5554  = 0.08663507 = 9 %
+# two first 0.1559868*0.7576 = 0.1181756 = 11 %
+# Three first 0.1559868*0.9346 = 0.1457853 = 15 %
+
+# Since R2adj = 0.16, the percentages of accumulated constrained eigenvalues (see summary) show that the first axis alone 
+# explains 0.16 x 0.56 = 0.09 or 9 % variance, the two first 00.16 x 0.76 = 0.12 or 12 % variance 
+# and the three first 0.16 x 0.94 = 15 % variance
 
 vif.cca(fam.db.repmes)
+# No variation inflation factor higher than 1.6 (treshhold = 6)
 
 coef(fam.db.repmes)
 
+gof(fam.db.repmes)
 
-## Ordinary Plots #####
-colvec1 <- palette()[1:5]
+# Apply Kaiser -Guttman criterion to residual, unconstrained axes
+fam.db.repmes$CA$eig[fam.db.repmes$CA$eig > mean(fam.db.repmes$CA$eig)]
+
+# There is still alot of interesting variation in these data that
+# has not been explained by out set of environmental variables
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Variation partitioning
+# for a proper computation  of unbiased, adjuste3d R2 and partial R2
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+fam.db.vp <- varpart(fam.usc, ~ samcam, ~age_class, data=env.fin)
+fam.db.vp2 <- varpart(fam.usc, ~ samcam,~mc+n+clay, ~age_class+pH, data=env.fin)
+showvarparts(3)
+plot(fam.db.vp2)
+
+ab <- capscale(fam.usc ~ age_class , distance="bray", data=env.fin[,-1], add=TRUE); ab
+bc <- capscale(fam.usc ~ samcam, distance="bray", data=env.fin[,-1], add=TRUE); bc
+abc <- capscale(fam.usc ~ age_class + samcam, distance="bray", data=env.fin[,-1], add=TRUE); abc
+a <- capscale(fam.usc ~ age_class + Condition(samcam), distance="bray", data=env.fin[,-1], add=TRUE); a
+c <- capscale(fam.usc ~ samcam + Condition(age_class), distance="bray", data=env.fin[,-1], add=TRUE); c
+
+
+RsquareAdj(ab)
+RsquareAdj(bc)
+RsquareAdj(abc)
+RsquareAdj(a)
+RsquareAdj(c)
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# Ideas from https://www.ualberta.ca/~ahamann/teaching/renr690/Lab9b.pdf ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+## getting the scores
+scores_dbRDA <- scores(fam.db.repmes,1:3)
+site_scores <- scores_dbRDA$sites
+species_scores <- scores_dbRDA$species
+
+#fix(species_scores)
+
+site_scores_environment=cbind(site_scores, env.fin[sapply(env.fin,is.numeric)])
+
+correlations <- cor(site_scores_environment)
+
+correlations2 <- correlations[4:14,1:3] # The loadings we are interested in
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+##  Plots #####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# with scaling method 1, the distances between sites on the graph are approximations of the Euclidean 
+# distance between sites. For this reason, a synonym for scaling method 1 is distance scaling. If you use 
+# scaling method 2, then the distances between sites are  not  represented  as  accurately  as  with  scaling 
+# method  1. Scaling  method  2  is  used  to  show the  correlations  among  species  better.
+# However, I have to use Scaling 2, since in scaling 1 plots sites are indistinguishable
+
+# Color Palettes
+#colvec1 <- palette()[1:5]
 #colvec1 <- brewer.pal(5, "Set1")
-colvec <- rep(rep(colvec1, each=3),2)
+#colvec <- rep(rep(colvec1, each=3),2)
 
-# Mit Constraints scores ####
+# Point shapes adjusted to age_class and samcam
+shape_rda1 <- c(2,6,5,0,1)
+shape_rda2 <- c(rep(c(2,6,5,0,1), each=3),rep(c(24,25,23,22,21), each=3))
+
+### Mit weighted averages scores ####
+
+# Version 1 mit ordiplot()
+par(mfrow=c(1,1),
+    mar=c(2,2,2,0.2),
+    oma=c(0,0,0,0),
+    mgp=c(01,0.2,0),
+    cex.lab=0.5,
+    cex.axis=0.5,
+    cex.main=0.5,
+    lwd=0.3,
+    tcl=NA,
+    pin=c(width=6/2.54, height=6/2.54))
+
+#par() # to see actual settings
+
+abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
+           dot = FALSE, strict = FALSE,
+           method = "left.kept")
+
+# Axis 1 + 2
+#************
+# Scaling 2 
+  plot2 <- ordiplot(fam.db.repmes,choices=c(1,2), type="n", scaling=2, display=c("wa","sp","cn"), main="Scaling 2 wa-scores")
+  ordiellipse(plot2, env1$age_class, scaling=2, kind="se", conf=0.95)
+  points(plot2, "centroids", pch=3, bg="black", cex=0.8) 
+  points(plot2, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+  points(plot2, "species", pch=4, cex=0.8) 
+  text(plot2, "species",label=abv, pch=4, cex=0.4) 
+  #identify(plot2, "sp", label=abv,cex=0.5)
+  legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+  dev.copy2pdf(file="Results/dbRDA12sc2.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F, out.type = "pdf")# 
+  
+    # Scaling 1
+    plot1 <- ordiplot(fam.db.repmes, choices=c(1,2),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
+    ordiequilibriumcircle(fam.db.repmes,plot1)
+    ordiellipse(plot1, env1$age_class, scaling=2, kind="se", conf=0.95)
+    points(plot1, "centroids", pch=3, bg="black", cex=0.8) 
+    points(plot1, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+    points(plot1, "species", pch=4, cex=0.8) 
+    text(plot1, "species",label=abv, pch=4, cex=0.4) 
+    legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+    #identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
+    dev.copy2pdf(file="Results/dbRDA12sc1.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F, out.type = "pdf")
+    
+# Axis 2 + 3
+#************
+  # Scaling 2
+  plot2 <- ordiplot(fam.db.repmes,choices=c(2,3), type="n", scaling=2, display=c("wa","sp","cn"), main="Scaling 2 wa-scores")
+  ordiellipse(plot2, env1$age_class, kind="se", conf=0.95)
+  points(plot2, "centroids", pch=3, bg="black", cex=0.8)
+  points(plot2, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+  points(plot2, "species", pch=4, cex=0.8) 
+  text(plot2, "species",label=abv, pch=4, cex=0.4) 
+  #identify(plot2, "sp", label=names(fam.usc),cex=0.5)
+  legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.7)
+  dev.copy2pdf(file="Results/dbRDA23sc2.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F,out.type = "pdf")# 
+  
+    # Scaling 1
+    plot1 <- ordiplot(fam.db.repmes, choices=c(2,3),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
+    ordiequilibriumcircle(fam.db.repmes,plot1)
+    ordiellipse(plot1, env1$age_class, scaling=2, kind="se", conf=0.95)
+    points(plot1, "centroids", pch=3, bg="black", cex=0.8) 
+    #points(plot1, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+    points(plot1, "species", pch=4, cex=0.8) 
+    text(plot1, "species",label=abv, pch=4, cex=0.4) 
+    legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+    #identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
+    dev.copy2pdf(file="Results/dbRDA23sc1.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F,out.type = "pdf")# 
+    
+# Axis 3 + 1
+#************
+  # Scaling 2
+  plot2 <- ordiplot(fam.db.repmes,choices=c(3,1), type="n", scaling=2, display=c("wa","sp","cn"), main="Scaling 2 wa-scores")
+  ordiellipse(plot2, env1$age_class, kind="se", conf=0.95)
+  points(plot2, "centroids", pch=3, bg="black", cex=0.8)
+  points(plot2, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+  points(plot2, "species", pch=4, cex=0.8) 
+  text(plot2, "species",label=abv, pch=4, cex=0.4)
+  #identify(plot2, "sp", label=names(fam.usc),cex=0.5)
+  legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.7)
+  dev.copy2pdf(file="Results/dbRDA31sc2.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F, out.type = "pdf")# 
+
+    # Scaling 1
+    plot1 <- ordiplot(fam.db.repmes, choices=c(3,1),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
+    ordiequilibriumcircle(fam.db.repmes,plot1)
+    ordiellipse(plot1, env1$age_class, scaling=2, kind="se", conf=0.95)
+    points(plot1, "centroids", pch=3, bg="black", cex=0.8) 
+    #points(plot1, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+    points(plot1, "species", pch=4, cex=0.8) 
+    text(plot1, "species",label=abv, pch=4, cex=0.4) 
+    legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+    #identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
+    dev.copy2pdf(file="Results/dbRDA31sc1.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F, out.type = "pdf")# 
+    
+#   Scaling 1:
+#     As discussed for RDA, the species scores show 
+#     the direction of higher abundance of a particular 
+#     species.  We  thus  expect  higher  abundance  of 
+#     Hoplolaimidae for sites  1, 2, 3, ... // all triangles (not pyramids) 
+#     and  lower  abundance  for  those located at the opposite. 
+#     The centroid scores show where sites of the same 
+#     category are expected in the graph. These  scores  can  be  interpreted  in  a  similar  way 
+#     as  a  site  score.  For  instance,  we  expect  that  sites 
+#     with SP_O will contain more Hoplolaimidae
+
+# Version 2 mit cleanplot.pca
+cleanplot.pca(fam.db.repmes)
+
+# Version 3 mit 3d plot
+
+require(vegan3d)
+plot3d <- ordiplot3d(fam.db.repmes, scaling=2, angle=38, angle2=5,type="n")
+points(plot3d, "points", pch=shape_rda2, bg="black", cex=0.7) 
+text(plot3d, "arrows", col="blue", pos=3)
+
+ordirgl(fam.db.repmes2, display = "sites", type = "p", ax.col = "black", arr.col = "yellow",pch=shape_rda2, size=10)
+orgltext(fam.db.repmes, display = "species", choices = 1:3, pch=25, col="orange", size=10)
+orgltext(fam.db.repmes2, "text", display = "species", choices = 1:3, justify = "center", adj = 0.5)
+rgl.quit()
+
+### Mit Constraints scores ####
 par(mfrow=c(1,1))
 plot1 <- ordiplot(fam.db.repmes,type="p", scaling=1, display=c("sp","lc","cn")) #, display=c("sp","lc","cn")
 ordiequilibriumcircle(fam.db.repmes,plot1)
@@ -569,22 +787,6 @@ points(plot1, "sites", pch=25, bg=colvec, cex=1)
 legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
 
 
-
-# Mit weighted averages scores ####
-par(mfrow=c(1,1))
-plot1 <- ordiplot(fam.db.repmes,type="p", scaling=1, display=c("wa","sp"), main="Scaling 1 wa scores") #, display=c("sp","lc","cn")
-ordiequilibriumcircle(fam.db.repmes,plot1)
-identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
-points(plot1, "sites", pch=25, bg=colvec, cex=1) 
-legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
-
-plot2 <- ordiplot(fam.db.repmes,type="p", scaling=2)
-ordiequilibriumcircle(fam.db.repmes,plot2)
-identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
-points(plot1, "sites", pch=25, bg=colvec, cex=1) 
-legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pt.bg=colvec1, pch=25, pt.cex=0.7)
-
-cleanplot.pca(fam.db.repmes)
 
 
 par(mfrow=c(1,1))
@@ -604,7 +806,7 @@ legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col=
 
 require(vegan3d)
 plot3d <- ordiplot3d(fam.db.repmes, scaling=2, angle=50, type="n")
-points(plot3d, "points", pch=25, bg=colvec, cex=0.7) 
+points(plot3d, "points", pch=shape_rda, cex=0.7) 
 text(plot3d, "arrows", col="blue", pos=3)
 ordirgl(fam.db.repmes, size=2)
 
