@@ -56,14 +56,17 @@ rm(climate30.pca)
 
 
 ## Subset of (mostly) orthogonal variables ####
-env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","c","age","clay","ata2","hum2","ata1","prec1", "fertilisation", "intensity"))
+env.fin <- subset(env1, select=c("field.ID","age_class","crop","samcam","pH","mc","n","age","clay","ata2","hum2","ata1","prec1", "fertilisation", "intensity"))
 
 env.fin.pca <- rda(env.fin[,-c(1:4)], scale=T)
 cleanplot.pca(env.fin.pca)
-rm(env.fin.pca)
+rm(env.fin.pca, ev)
 
-par(mfrow=c(1,1))
+
+pairs(env.fin, lower.panel=panel.smooth, upper.panel=panel.cor)
+pairs(env.fin[,5:10], lower.panel=panel.smooth, upper.panel=panel.cor)
+pairs(env.fin[,11:15], lower.panel=panel.smooth, upper.panel=panel.cor)
+
 dev.off()
-rm(ev)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

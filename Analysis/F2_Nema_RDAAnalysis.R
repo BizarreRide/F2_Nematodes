@@ -12,7 +12,7 @@ source("Analysis/Sources/RequiredPackages.R")
 source("Data/DataProcessing/DataProcessing.R") 
 env1 <- droplevels(env.org[16:45,])
 source("Data/DataProcessing/EnvDataProcessing.R")
-env.fin$n <-  env1$n
+#env.fin$c <-  env1$c
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

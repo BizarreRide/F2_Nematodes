@@ -22,7 +22,7 @@ env.org$field.ID <- as.factor(env.org$field.ID)
 
 # Total count Data
 counts.org <- read.delim("Data/counts.txt")
-counts.org$counts <- counts.org$counts.av*100 # upscale to 100 ml Extract from 1oog dry soil => [Ind/100g soil]
+counts.org$counts <- counts.org$counts.av*10 # upscale to 100 ml Extract from 1oog dry soil => [Ind/100g soil]
 counts.env <- env.org[rep(seq_len(nrow(env.org)), each=3),-1] # adjust environmental data
 
 # Averaged over replicates for field.ID

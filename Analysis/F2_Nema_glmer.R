@@ -5,10 +5,27 @@
 # 11.08.2015
 ###########################
 
+
 # Load Data ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-source("data/RMAkeLikeFile.R")
+source("Analysis/Sources/RequiredPackages.R")
+source("Data/DataProcessing/DataProcessing.R") 
+env1 <- droplevels(env.org[16:45,])
+source("Data/DataProcessing/EnvDataProcessing.R")
+#env.fin$c <-  env1$c
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#  ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+data <- fam.org
+source("Data/DataProcessing/FamDatProcessing.R") 
+# fam.rel <- round(fam.rel*100,0) # choose basis data for faunal profile (.org, .rel, .usc)
+
+
+source("Data/DataProcessing/MaturityIndices.R") 
+source("Data/DataProcessing/FaunalProfileIndices.R") 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 
 # Data processing
@@ -17,26 +34,71 @@ source("data/RMAkeLikeFile.R")
 # to see if age_class effects stay constant
 env.fin$agsam <- with(env.fin, interaction(age_class,samcam))
 
-indices2 <- droplevels(cbind(indices,env.fin, location=env1$location))
-str(indices2)
+indices <- droplevels(cbind(groups,env.fin, location=env1$location))
+str(indices)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# 1. Analysis of FeedingTypes ####
+source("Data/DataProcessing/FeedingTypes.R") 
+colnames(fety)[2:9] <- c("herbivoresb","herbivoresc","herbivoresd","herbivorese","fungivores","bacterivores", "carnivores", "omnivores")
+fety$herbivores <- rowSums(fety[,2:5])
+fety <- as.data.frame(fety)
 
-# Test for Heteroscedasticity:
+
+# Fligne Killeen Test for Heteroscedasticity:
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-b <- c(1:18)
-for (i in 1:18) {
- a <-  fligner.test(indices[,i] ~ env.fin$agsam)
- b[i] <- a$p.value
+pvector <- c(2:10)
+for (i in 2:10) {
+ fk <-  fligner.test(fety[,i] ~ env.fin$agsam)
+ pvector[i] <- fk$p.value
+ boxplot(fety[,i]~env.fin$agsam)
 }
-any(b<0.05)
+any(pvector<0.05)
+pvector
+
 # There is no violation of heterosecedasticity for any of the indices
+# Null Hypothesis: All variances are equal can't be abgelehnt at the 5% level
+# The probability to judge real diffeences in varainces although the NULL is true is too high
+# in more than 5 of a hundred cases we would judge wrong if we say there are differences
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# Repeated measurments ANOVA 
+# GLMM
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# with glmm from nlme package####
+f.fety.lmer <- matrix(NA,12,11)
+p.fety.lmer <- matrix(NA,12,11)
+
+for(i in 1:9) {
+  indices$y <- fety[,i+1]
+  model <- lmer(y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|location/field.ID), REML=FALSE, indices)
+  print(summary(model))
+  nam <- paste("fety",i,names(fety[i+1]), sep = ".")
+  assign(nam, model)
+  f.fety.lmer[,i+2] <- round(Anova(model, type = "III")$"Chisq",2)
+  p.fety.lmer[,i+2] <- round(Anova(model, type = "III")$"Pr(>Chisq)",3)
+}
+f.fety.lmer[,1] <- p.fety.lmer[,1]  <- row.names(Anova(model, type="III"))
+f.fety.lmer[,2] <- p.fety.lmer[,2]  <- Anova(model, type = "III")$"Df"
+colnames(f.fety.lmer)[3:11] <- colnames(p.fety.lmer)[3:11] <- colnames(fety)[2:10]
+colnames(f.fety.lmer)[1] <- colnames(p.fety.lmer)[1] <- "Env"
+colnames(f.fety.lmer)[2] <- colnames(p.fety.lmer)[2] <- "Df"
+
+for(i in 1:9) { nam[i] <- c(paste("fety",i,names(fety[i+1]), sep = "."))}
+nam
+
+
+
+E <- resid(fety.1.herbivoresb, type="pearson")
+P <- predict(fety.1.herbivoresb)
+Fit <- fitted(fety.1.herbivoresb)
+
+plot(Fit,E)
+plot(indices$age_class,E)
+
+
+
 
 # with glmm from nlme package####
 f.stats.lme <- matrix(NA,11,20)

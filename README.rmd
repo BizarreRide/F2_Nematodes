@@ -1,0 +1,123 @@
+---
+title: "F2_Nema_MainAnalysis_README"
+author: "Quentin Schorpp"
+date: "`r Sys.Date()`"
+output: md_document
+---
+
+*The README.md file gives an overview of all the files in the project. It should briefly describe the project including things like its title, author(s), topic, any copyright information, and so on. It should also indicate how the folders in the project are organized and give instruction how to reproduce the project. The README file should be in the main project folder. It is good practice to dynamically include the system information for the R session that was used. To do this you can write your README file with R Markdown. Simply include the sessionInfo() command in a knitr code chunk in the R Markdown document. If you knit this file immediately after knitting your presentation document it will record the information for that session.*
+
+## Topic: 
+Nematode communities from fields of the perennial bioenergy crop *S. perfoliatum*.
+
+## Project Directories:
+
+**Data:** Main Data Source ("F2_NemaFamily.xlsx"; "F2_Nema_Genus.xlsx")
+      spe.txt - Species data 
+        Counts of nematode families in subsamples of ca. 100 Individuals (i.e. relative numbers)
+        Indices calculated in Excel:
+        Diversity Indices: Shannon, Simpson, Pielou Eveness, 
+        Nemtode Indices: Maturity Indices: MI, MI2-5, sigmaMI, sigmaMI2-5, PPI, PPI/MI
+                         Faunal Profile Indices: SI, EI, CI, BI, 
+                         Nematode Channel ratio: NCR
+                         
+        
+        Indexing variables 
+        "ID" - continous ID, row number
+        "samcam" - Sampling Campaign; spe with TWO sampling campaigns
+        "field.ID" -  an ID for each field that was sampled
+        "field" - Information about year of establishment and location of the field, similar to field.ID
+        
+      counts.txt - counts from Extraction samples. All composite samples whave been extracted three times, and then counted also three times.
+        counts.av - Average counts for each extraction sample (n=3)
+        counts.sd - standard deviataion for each extraction sample (n=3)
+        
+        Indexing variables 
+        "ID" - continous ID, row number
+        "samcam" - Sampling Campaign; counts with THREE sampling campaigns
+        "field.ID" -  an ID for each field that was sampled, repeated 3 times for each extractione
+        "field" - Information about year of establishment and location of the field, similar to field.ID 
+        
+      env.txt
+        Environmental variables for THREE Sampling campaigns
+        
+        Cilmatic Parameters:
+        ats - average temperature in 5 cm depth above soil surface
+        ata - average air temperature in 2m
+        atb - average air temperature in 5-20 cm height above soil surface
+        prec - Precipitation in mm
+        rad - radiation
+        hum - Humidity [%]
+        
+        soil chemico-physical properties
+      
+     master.txt
+        master table assigning c-p values and feeding types to families
+      
+      
+**Data/DataProcessing:** Data Processing 
+
+      Files:
+      
+      * DataProcessing.R - Load Data and extratc family data from spe.txt (create fam.org)
+                         - define factors
+                         - extrapolate count data to 100g/dry soil (create $counts)
+                         - average count data acros repeated extractions of composite samples
+                         
+      * EnvDataProcessing - subset env data into categories: average climate, day climate, soil, managment, spatial and grouping variables 
+                            (Indexing variables)
+                          - extract orthogonal env parameters via PCA
+                          - Create Parameter "Intensity" from management data.
+                          - Check for  multicollinearity and chose the "final" subset of env parameters
+                          
+      (AverageData.R)                                       
+                          
+      * FamDatProcessing - Needs "data" to be specified
+                         - Calculate proportion data (Fractions!), since the range of identified nematodes varies between 90 and 120 (fam.rel)
+                         - calculate upscaled nematode communities using count data (fam.usc)
+                         - Select abundant taxa (fam.fin)
+                         - calculate Biodiversity Indices, using universal function *biodiv()*
+                         
+      * FeedingTypes    - Needs "data" to be specified
+                        - sums up families for feeding types using the master table
+                      
+      
+      * FaunalProfileIndices - Needs "data" to be specified
+                             - calculates faunal guilds weightings
+                             - calculates faunal Profile Indices SI, CI, BI and EI
+      
+      * MaturityIndices - Needs "data" to be specified
+                        - calculates totals according to maturity indices
+                        - calculates maturity Indices MI, MI2-5, sigmaMI, sigmaMI2-5, PPI, and PPI/MI
+      
+      * cpValueAbundances - Needs "data" to be specified
+                          - calculates sums for c-p values
+           
+      * AverageData.R    - Average the data(env, fam, counts) for field.ID to get rid of repeated measurements
+                         - Calculate difference data as differences between pairs of samples form the two sampling campaigns (fam.slope)
+                         - can be used before "FamDatProcessing"
+                   
+**Note:** The files "FamDatProcessing.R", "FeedingTypes.R", "FaunalProfileIndices.R", "MaturityIndices.R", "cpValuesAbundances.R" needs "data" to be specified, data can be fam.org, fam.rel, fam.slope, or fam.av or any other data frame on species composition. Hence these files can be used similarly to functions    
+                    
+          
+                                  
+                    
+**Analysis:** 
+     
+
+**Analysis/Sources:**
+
+
+**Analysis/Examples:**
+
+
+**Results:**
+
+
+**Notes:**
+
+**Notes/F2_Nematodes:**
+
+
+```{r}
+sessionInfo()
