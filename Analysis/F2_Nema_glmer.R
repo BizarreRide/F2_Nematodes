@@ -34,18 +34,21 @@ source("Data/DataProcessing/FaunalProfileIndices.R")
 # to see if age_class effects stay constant
 env.fin$agsam <- with(env.fin, interaction(age_class,samcam))
 
-indices <- droplevels(cbind(groups,env.fin, location=env1$location))
+indices <- droplevels(cbind(groups,env.fin, location=env1$location, N=rowSums(fam.org)))
 str(indices)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # 1. Analysis of FeedingTypes ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 source("Data/DataProcessing/FeedingTypes.R") 
 colnames(fety)[2:9] <- c("herbivoresb","herbivoresc","herbivoresd","herbivorese","fungivores","bacterivores", "carnivores", "omnivores")
 fety$herbivores <- rowSums(fety[,2:5])
-fety <- as.data.frame(fety)
+fety <- as.data.frame(fety[,-1])
+fety2 <- fety/indices$N
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# Fligne Killeen Test for Heteroscedasticity:
+# Fligner Killeen Test for Heteroscedasticity:
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pvector <- c(2:10)
 for (i in 2:10) {
@@ -69,13 +72,16 @@ pvector
 # with glmm from nlme package####
 f.fety.lmer <- matrix(NA,12,11)
 p.fety.lmer <- matrix(NA,12,11)
+fety.lmer <- list()
 
 for(i in 1:9) {
-  indices$y <- fety[,i+1]
-  model <- lmer(y ~ age_class*samcam + pH + n + mc + clay + intensity + fertilisation + ata1 + prec1 + (1|location/field.ID), REML=FALSE, indices)
+  indices$y <- fety2[,i]
+  model <- glmer(y ~ age_class + samcam + (1|location/field.ID), family="binomial", weights=N, REML=FALSE, indices)
+  # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   print(summary(model))
-  nam <- paste("fety",i,names(fety[i+1]), sep = ".")
-  assign(nam, model)
+  name <- paste("fety",i,names(fety2[i]), sep = ".")
+  assign(name, model)
+  fety.lmer[[i]] <- assign(name, model)
   f.fety.lmer[,i+2] <- round(Anova(model, type = "III")$"Chisq",2)
   p.fety.lmer[,i+2] <- round(Anova(model, type = "III")$"Pr(>Chisq)",3)
 }
@@ -85,12 +91,46 @@ colnames(f.fety.lmer)[3:11] <- colnames(p.fety.lmer)[3:11] <- colnames(fety)[2:1
 colnames(f.fety.lmer)[1] <- colnames(p.fety.lmer)[1] <- "Env"
 colnames(f.fety.lmer)[2] <- colnames(p.fety.lmer)[2] <- "Df"
 
-for(i in 1:9) { nam[i] <- c(paste("fety",i,names(fety[i+1]), sep = "."))}
-nam
 
 
+mod.names <- c(1:9)
+for(i in 1:9) { mod.names[i] <- c(paste("fety",i,names(fety2[i]), sep = "."))}
 
-E <- resid(fety.1.herbivoresb, type="pearson")
+k = 5
+
+summary(fety.lmer[[k]])
+Anova(fety.lmer[[k]])
+
+  E1 <- resid(fety.lmer[[k]], type="pearson")
+  E2 <- resid(fety.lmer[[k]], type="response")
+  F1 <- fitted(fety.lmer[[k]], type="response")
+  P1 <- predict(fety.lmer[[k]], type="response")
+ 
+ par(mfrow=c(2,2),
+     mar=c(4,4.5,1,2))
+ # Plot fitted vs. residuals
+ scatter.smooth(F1, E1, cex.lab = 1.5, xlab="Fitted values", ylab=" Residuals")
+ abline(h = 0, v=0, lty=2)
+ 
+ # plot predicted vs. residuals
+ scatter.smooth(P1, E1, cex.lab = 1.5, xlab="Predicted values", ylab=" Residuals")
+ abline(h = 0, v=0, lty=2)
+ 
+ # plot fitted vs. predicted
+ scatter.smooth(F1, P1, cex.lab = 1.5, xlab="Fitted values", ylab="Predicted")
+ abline(h = 0, v=0, lty=2)
+ 
+ # Histogram of Residuals
+ hist(E1, prob=TRUE, main = "", breaks = 20, cex.lab = 1.5, xlab = "Response Residuals", col="PapayaWhip")
+ lines(density(E1), col="light blue", lwd=3)
+ lines(density(E1, adjust=2), lty="dotted", col="darkgreen", lwd=2) 
+
+  # Normal QQ Plot
+ qqnorm(E2)
+ qqline(E2)
+ 
+   
+E <- resid(fety.lmer[[1]], type="pearson")
 P <- predict(fety.1.herbivoresb)
 Fit <- fitted(fety.1.herbivoresb)
 
