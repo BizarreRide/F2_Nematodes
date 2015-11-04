@@ -12,18 +12,13 @@ source("Analysis/Sources/RequiredPackages.R")
 source("Data/DataProcessing/DataProcessing.R") 
 env1 <- droplevels(env.org[16:45,])
 source("Data/DataProcessing/EnvDataProcessing.R")
-#env.fin$c <-  env1$c
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#  ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 data <- fam.org
 source("Data/DataProcessing/FamDatProcessing.R") 
-# fam.rel <- round(fam.rel*100,0) # choose basis data for faunal profile (.org, .rel, .usc)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-source("Data/DataProcessing/MaturityIndices.R") 
-source("Data/DataProcessing/FaunalProfileIndices.R") 
+# as needed
+# source("Data/DataProcessing/MaturityIndices.R") 
+# source("Data/DataProcessing/FaunalProfileIndices.R") 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -32,11 +27,19 @@ source("Data/DataProcessing/FaunalProfileIndices.R")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # create interaction factor for interaction between age_class and samcam, 
 # to see if age_class effects stay constant
+
 env.fin$agsam <- with(env.fin, interaction(age_class,samcam))
+#env.fin$c <-  env1$c # include carbon
+
+#fam.rel <- round(fam.rel*100,0) # choose basis data for faunal profile (.org, .rel, .usc)
 
 indices <- droplevels(cbind(groups,env.fin, location=env1$location, N=rowSums(fam.org)))
 str(indices)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+table(indices$location, indices$field.ID)
+
 
 # 1. Analysis of FeedingTypes ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -70,14 +73,15 @@ pvector
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # with glmm from nlme package####
-f.fety.lmer <- matrix(NA,12,11)
-p.fety.lmer <- matrix(NA,12,11)
+f.fety.lmer <- matrix(NA,8,11)
+p.fety.lmer <- matrix(NA,8,11)
 fety.lmer <- list()
 
 for(i in 1:9) {
   indices$y <- fety2[,i]
-  model <- glmer(y ~ age_class + samcam + (1|location/field.ID), family="binomial", weights=N, REML=FALSE, indices)
+  model <- glmer(y ~ age + (1|samcam) + (1|location/field.ID), family="binomial", weights=N, REML=FALSE, indices)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
+  # if it is "disregarded in glmer() it is OK
   print(summary(model))
   name <- paste("fety",i,names(fety2[i]), sep = ".")
   assign(name, model)
@@ -87,19 +91,37 @@ for(i in 1:9) {
 }
 f.fety.lmer[,1] <- p.fety.lmer[,1]  <- row.names(Anova(model, type="III"))
 f.fety.lmer[,2] <- p.fety.lmer[,2]  <- Anova(model, type = "III")$"Df"
-colnames(f.fety.lmer)[3:11] <- colnames(p.fety.lmer)[3:11] <- colnames(fety)[2:10]
+colnames(f.fety.lmer)[3:11] <- colnames(p.fety.lmer)[3:11] <- colnames(fety)[1:9]
 colnames(f.fety.lmer)[1] <- colnames(p.fety.lmer)[1] <- "Env"
 colnames(f.fety.lmer)[2] <- colnames(p.fety.lmer)[2] <- "Df"
 
+library(MuMIn)
+fety.dredge <- list()
+options(na.action = "na.fail")
+for(i in 1:9) {
+  indices$y <- fety2[,i]
+  M.dredge <- dredge(fety.lmer[[i]])
+  name <- paste("fetydredge",i,names(fety2[i]), sep = ".")
+  assign(name, M.dredge)
+  fety.dredge[[i]] <- assign(name, M.dredge)
+  print(head(M.dredge,10))
+}
+
+summary(fetydredge.5.fungivores)
+fety.dredge.avg <- model.avg(fetydredge.5.fungivores, fit=T, subset = delta < 4)
+summary(fety.dredge.avg)
+Anova(fety.dredge.avg)
+data.frame(importance(anc.avgmod1.d4))
 
 
 mod.names <- c(1:9)
 for(i in 1:9) { mod.names[i] <- c(paste("fety",i,names(fety2[i]), sep = "."))}
+names(fety.lmer)[1:9] <- mod.names
 
-k = 5
 
-summary(fety.lmer[[k]])
-Anova(fety.lmer[[k]])
+for(k in 1:9){ 
+print(list(summary(fety.lmer[[k]]),Anova(fety.lmer[[k]])))
+
 
   E1 <- resid(fety.lmer[[k]], type="pearson")
   E2 <- resid(fety.lmer[[k]], type="response")
@@ -107,7 +129,9 @@ Anova(fety.lmer[[k]])
   P1 <- predict(fety.lmer[[k]], type="response")
  
  par(mfrow=c(2,2),
-     mar=c(4,4.5,1,2))
+     mar=c(4,4.5,1,2),
+     oma=c(0,0,2,0)
+     )
  # Plot fitted vs. residuals
  scatter.smooth(F1, E1, cex.lab = 1.5, xlab="Fitted values", ylab=" Residuals")
  abline(h = 0, v=0, lty=2)
@@ -125,7 +149,13 @@ Anova(fety.lmer[[k]])
  lines(density(E1), col="light blue", lwd=3)
  lines(density(E1, adjust=2), lty="dotted", col="darkgreen", lwd=2) 
 
+title(names(fety.lmer)[k], outer=TRUE)
+
+}
+
+
   # Normal QQ Plot
+
  qqnorm(E2)
  qqline(E2)
  
