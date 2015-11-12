@@ -216,44 +216,22 @@ mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(fety2)[i], sep = "."))}
 names(fety.biglmer.crop)[1:p] <- mod.names
 
+r2.fety.biglmer.crop <- matrix(NA,2,p)
+row.names(r2.fety.biglmer.crop) <- c("R2m", "R2c")
+colnames(r2.fety.biglmer.crop) <- colnames(fety2)
+
+for(i in 1:p) {
+  r2.fety.biglmer.crop[,i] <- MuMIn::r.squaredGLMM(fety.biglmer.crop[[i]])
+}
+
 dispersion_glmer(model)
-
-#save(list=c("f.fety.biglmer.crop","p.fety.biglmer.crop"), file="Results/CHi2+p_Fety_bnGLMM_crop.rda")
-#write.csv(f.fety.biglmer.crop, file="Results/Chi2_Fety_bnGLMM_crop.csv")
-#write.csv(p.fety.biglmer.crop, file="Results/p_Fety_bnGLMM_crop.csv")
+# 
+# save(list=c("f.fety.biglmer.crop","p.fety.biglmer.crop"), file="Results/CHi2+p_Fety_bnGLMM_crop.rda")
+# write.csv(f.fety.biglmer.crop, file="Results/Chi2_Fety_bnGLMM_crop.csv")
+# write.csv(p.fety.biglmer.crop, file="Results/p_Fety_bnGLMM_crop.csv")
+# write.csv(r2.fety.biglmer.crop, file="Results/p_Fety_bnGLMM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-# Post Hoc data inspection with lsmeans package ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-detach("package:lmerTest", unload=TRUE)
-require(lsmeans)
-
-fety.lsm <- list()
-
-for (i in 1:p) {
-  # get the results on a back transformed scale:
-  lsm <- lsmeans(fety.biglmer.crop[[i]], ~ crop)
-  summary(lsm, type = "response")
-  name <- paste("lsm",i,names(fety2)[i], sep = ".")
-  fety.lsm[[i]] <- assign(name, lsm)
-  # to see the results graphically
-  p1 <- plot(lsm,  intervals = TRUE, type = "response")
-  print(p1)
-  #title(names(fety.biglmer.crop)[i], outer=TRUE)
-}
-
-
-for(i in 1:p){
-  lsmip(fety.lsm[[i]], age_class ~ samcam, type = "response")
-  summary(pairs(fety.lsm[[i]]), type = "response")
-  summary(pairs(regrid(fety.lsm[[i]])), type = "response")
-}
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 
 
 # Overdispersion ####
@@ -371,89 +349,6 @@ for(k in 1:p) {
   print(plot1)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-# Post Hoc Tukey Tests  ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-indices <- droplevels(indices)
-
-LettersC <- matrix(NA,2,p)
-PH.list <- list()
-
-for(i in 1:p) {
-  posthoc <- glht(fety.biglmer.crop[[i]], linfct=mcp(crop="Tukey"))
-  posthoc <- summary(posthoc, test = adjusted(type = "bonferroni"))
-  nam <- paste("glht",i,names(fety2[i]), sep = ".")
-  PH.list[[i]] <- assign(nam, posthoc)
-  x <- cld(posthoc)$mcletters
-  xx <- x$Letters
-  LettersC[,i] <- xx
-  plot(cld(posthoc), main=nam)
-}
-colnames(LettersC) <- colnames(fety2)
-row.names(LettersC) <- levels(indices$crop)
-
-#####
-# Pairwise comparisons (with interaction term)
-endad.pairwise <- glht(endad.tukey, linfct=mcp(ia.acl.smc = cm1))
-endad.pw.ci <- confint(endad.pairwise)
-summary(endad.pairwise, test=adjusted(type="fdr"))
-
-# Confidence intervals including 0
-endad.pw.sig <- which(endad.pw.ci$confint[,2]>0)
-data.frame(names(endad.pw.sig))
-
-# Plot Errorbars
-phfig1 <- ggplot(endad.pw.ci, aes(y = lhs, x = exp(estimate), xmin = exp(lwr), xmax = exp(upr))) + 
-  geom_errorbarh() + 
-  geom_point() + 
-  geom_vline(xintercept = 1) +
-  mytheme
-phfig1
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-# Prediction plots ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-indices <- droplevels(indices)
-
-testdata = expand.grid(crop=unique(indices$crop))
-
-test.list <- list()
-
-for(i in 1:p) {
-  X <- model.matrix(~ crop, data = testdata)
-  testdata$fit <- X %*% fixef(fety.biglmer.crop[[i]])
-  testdata$SE <- sqrt(diag(X %*%vcov(fety.biglmer.crop[[i]]) %*% t(X)))
-  testdata$upr=testdata$fit+1.96*testdata$SE
-  testdata$lwr=testdata$fit-1.96*testdata$SE
-  nam <- paste("tdata",i,names(fety2[i]), sep = ".")
-  test.list[[i]] <- assign(nam, testdata)
-}
-
-fety2 <- fety.backup[,-c(1:4)]
-fety2$crop <- indices$crop
-
-for (i in 1:p) {
-  fety2$response <- fety2[,i]
-  print(ggplot(test.list[[i]], aes(x = crop, y = exp(fit))) + 
-          #geom_bar(stat="identity",position = position_dodge(1), col="454545", size=0.15, fill="grey") +
-          geom_point(aes(x=as.numeric(crop)+0.5),pch=23, size=5, bg="aquamarine2") + 
-          geom_errorbar(aes(x=as.numeric(crop)+0.5, ymin = exp(lwr), ymax = exp(upr)),position = position_dodge(1),col="black",width=0.15, size=0.15) + 
-          geom_boxplot(aes(y=response, fill=crop), data=fety2[outlier[[i]],]) +
-          geom_hline(xintercept = 1, size=0.15) +
-          ylab("Nematodes?") +
-          xlab("Age Class") +
-          scale_x_discrete(labels=c("Maize", "Silphie")) +
-          theme_bw() +
-          theme(axis.text.x =element_text(angle=30, hjust=1, vjust=1)))
-}
-
-fety2 <- round(fety[,-c(1:4)],0)
 
 #####
 

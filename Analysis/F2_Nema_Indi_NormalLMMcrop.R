@@ -71,8 +71,9 @@ indices <- indices.backup
 data=fam.av
 source("Data/DataProcessing/MaturityIndices.R")
 source("Data/DataProcessing/FaunalProfileIndices.R") 
+biodiv <- biodiv.fun(round(fam.av,0))
 
-nema.backup <- cbind(FaPro[,-c(1:5)], MaturityIndices, N=counts.av$counts)
+nema.backup <- cbind(FaPro[,-c(1:5)], MaturityIndices, biodiv)
 nema <- round(nema.backup,2)
 
 
@@ -84,9 +85,9 @@ p <- ncol(nema)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pvector <- c(2:10)
 for (i in 2:10) {
-  fk <-  fligner.test(nema[,i] ~ indices$agsam)
+  fk <-  fligner.test(nema[,i] ~ indices$crop)
   pvector[i] <- fk$p.value
-  boxplot(nema[,i]~indices$agsam)
+  boxplot(nema[,i]~indices$crop)
 }
 any(pvector<0.05) # Here is sth. wrong!!
 pvector
@@ -136,11 +137,11 @@ for(i in 1:p) {
 
 # age_class:
 # bacterivores decrease
-# herbivores increase
+# herbivores iindiease
 # fungivores have an polynomial relationship
 
 # samcam:
-# carnivores increase in the second year, only in Silphie!
+# carnivores iindiease in the second year, only in Silphie!
 # no big differences for the others
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -155,7 +156,13 @@ outlier <- list(nema.BI <- 1:18,
                 nema.sigmaMI <- 1:18,
                 nema.sigmaMI25 <- 1:18,
                 nema.PPI1 <- -6,
-                nema.N <- -15)
+                nema.SR <- 1:18,
+                nema.rarefy <- 1:18,
+                nema.H <- 1:18,
+                nema.D <- 1:18,
+                nema.J <- 1:18,
+                nema.H1 <- 1:18,
+                nema.N <- -18)
 
 
 # change factor properties
@@ -236,6 +243,21 @@ f.indi.lmer.crop[,2] <- p.indi.lmer.crop[,2]  <- Anova(model)$"Df"
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(nema)[i], sep = "."))}
 names(indi.lmer.crop)[1:p] <- mod.names
+
+
+r2.indi.lmer.crop <- matrix(NA,2,p)
+row.names(r2.indi.lmer.crop) <- c("R2m", "R2c")
+colnames(r2.indi.lmer.crop) <- colnames(nema)
+
+for(i in 1:p) {
+  r2.indi.lmer.crop[,i] <- MuMIn::r.squaredGLMM(indi.lmer.crop[[i]])
+}
+
+# save(list=c("f.indi.lmer.crop","p.indi.lmer.crop", "r2.indi.lmer.crop"), file="Results/CHi2+p_indi_LM_crop.rda")
+# write.csv(f.indi.lmer.crop, file="Results/Chi2_indi_LM_crop.csv")
+# write.csv(p.indi.lmer.crop, file="Results/p_indi_LM_crop.csv")
+# write.csv(r2.indi.lmer.crop, file="Results/p_indi_LM_crop.csv")
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ### normal LMM - Model Validation ####
@@ -349,146 +371,6 @@ for(k in 1:p) {
   print(plot1)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-# Post Hoc Tukey Tests  ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-indices <- droplevels(indices)
-
-LettersASindi <- matrix(NA,8,p)
-PH.list <- list()
-
-for(i in 1:p) {
-  indices2 <- indices[outlier[[i]],]
-  indices2$y <- nema[outlier[[i]],i]
-  #model <- lm(x ~ agsam + pH + c + mc + ata1, data=indices2)
-  #model <- lme(x ~ agsam + pH + c + mc + clay + intensity + fertilisation + ata1 + prec1, random = ~ 1 | field.ID, data=indices2)
-  model <- lmer(y ~ agsam + (1|field.ID), indices2) # No Difference
-  posthoc <- glht(model, linfct=mcp(agsam="Tukey"))
-  posthoc <- summary(posthoc, test = adjusted(type = "bonferroni"))
-  nam <- paste("glht",i,names(nema[i]), sep = ".")
-  PH.list[[i]] <- assign(nam, posthoc)
-  x <- cld(posthoc)$mcletters
-  xx <- x$Letters
-  LettersASindi[,i] <- xx
-  plot(cld(posthoc), main=nam)
-}
-colnames(LettersASindi) <- colnames(nema)
-row.names(LettersASindi) <- levels(indices2$agsam)
-
-#**************************************************************************
-
-LettersACindi <- matrix(NA,4,p)
-PH.list <- list()
-
-for(i in 1:p) {
-  posthoc <- glht(indi.lmer.crop[[i]], linfct=mcp(age_class="Tukey"))
-  posthoc <- summary(posthoc, test = adjusted(type = "bonferroni"))
-  nam <- paste("glht",i,names(nema[i]), sep = ".")
-  PH.list[i] <- assign(nam, posthoc)
-  x <- cld(posthoc)$mcletters
-  xx <- x$Letters
-  LettersACindi[,i] <- xx
-  plot(cld(posthoc), main=nam)
-}
-colnames(LettersACindi) <- colnames(nema)
-row.names(LettersACindi) <- levels(indices$age_class)
-
-#**************************************************************************
-
-LettersSCindi <- matrix(NA,2,p)
-PH.list <- list()
-
-for(i in 1:p) {
-  posthoc <- glht(indi.lmer.crop[[i]], linfct=mcp(samcam="Tukey"))
-  posthoc <- summary(posthoc, test = adjusted(type = "bonferroni"))
-  nam <- paste("glht",i,names(nema[i]), sep = ".")
-  PH.list[i] <- assign(nam, posthoc)
-  x <- cld(posthoc)$mcletters
-  xx <- x$Letters
-  LettersSCindi[,i] <- xx
-  plot(cld(posthoc), main=nam)
-}
-colnames(LettersSCindi) <- colnames(nema)
-row.names(LettersSCindi) <- levels(indices$samcam)
-
-#####
-
-# Pairwise comparisons (with interaction term)
-endad.pairwise <- glht(endad.tukey, linfct=mcp(ia.acl.smc = cm1))
-endad.pw.ci <- confint(endad.pairwise)
-summary(endad.pairwise, test=adjusted(type="fdr"))
-
-# Confidence intervals including 0
-endad.pw.sig <- which(endad.pw.ci$confint[,2]>0)
-data.frame(names(endad.pw.sig))
-
-# Plot Errorbars
-phfig1 <- ggplot(endad.pw.ci, aes(y = lhs, x = exp(estimate), xmin = exp(lwr), xmax = exp(upr))) + 
-  geom_errorbarh() + 
-  geom_point() + 
-  geom_vline(xintercept = 1) +
-  mytheme
-phfig1
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-# Prediction plots ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-testdata = expand.grid(age_class=unique(indices$age_class),
-                       samcam = unique(indices$samcam))
-
-test.list <- list()
-
-for(i in 1:p) {
-  X <- model.matrix(~ age_class*samcam, data = testdata)
-  testdata$fit <- X %*% fixef(indi.lmer.crop[[i]])
-  testdata$SE <- sqrt(  diag(X %*%vcov(indi.lmer.crop[[i]]) %*% t(X))  )
-  testdata$upr=testdata$fit+1.96*testdata$SE
-  testdata$lwr=testdata$fit-1.96*testdata$SE
-  nam <- paste("tdata",i,names(nema[i]), sep = ".")
-  test.list[[i]] <- assign(nam, testdata)
-}
-
-
-for (i in 1:p) {
-  print(ggplot(test.list[[i]], aes(x = age_class, y = fit, ymin = lwr, ymax = upr)) + 
-          geom_bar(stat="identity",position = position_dodge(1), col="454545", size=0.15, fill="grey") +
-          geom_errorbar(position = position_dodge(1),col="black",width=0.15, size=0.15) + 
-          facet_grid(.~samcam) +
-          geom_hline(xintercept = 1, size=0.15) +
-          ylab("Nematodes?") +
-          xlab("Age Class") +
-          scale_x_discrete(labels=c("Sp_Y", "Sp_I1", "Sp_I2", "Sp_O")) +
-          mytheme +
-          theme(axis.text.x =element_text(angle=30, hjust=1, vjust=1)))
-}
-
-#nema <- fety.backup[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
-nema$age_class <- indices$age_class
-
-for (i in 1:p) {
-  nema$response <- nema[,i]
-  print(ggplot(test.list[[i]], aes(x = age_class, y = fit)) + 
-          #geom_bar(stat="identity",position = position_dodge(1), col="454545", size=0.15, fill="grey") +
-          geom_point(aes(x=as.numeric(age_class)+0.3),pch=23, bg="aquamarine2") + 
-          geom_errorbar(aes(x=as.numeric(age_class)+0.3, ymin = lwr, ymax = upr),position = position_dodge(1),col="black",width=0.15, size=0.15) + 
-          geom_boxplot(aes(y=response), data=nema[outlier[[i]],]) +
-          facet_grid(.~samcam) +
-          geom_hline(xintercept = 1, size=0.15) +
-          ylab("Nematodes?") +
-          xlab("Age Class") +
-          scale_x_discrete(labels=c("Sp_Y", "Sp_I1", "Sp_I2", "Sp_O")) +
-          mytheme +
-          theme(axis.text.x =element_text(angle=30, hjust=1, vjust=1)))
-}
-
-nema <- nema.backup[!indices.backup$age_class %in% "A_Cm",]
 
 #####
 

@@ -214,20 +214,20 @@ for (i in 1:p) {
   title(names(nema)[i],outer=TRUE)
 }
 
-nema <- subset(nema, select=c("SI","EI","sigmaMI","sigmaMI25", "SR","rarefy","H","D","J","H1"))
+# nema <- subset(nema, select=c("SI","EI","sigmaMI","sigmaMI25", "SR","rarefy","H","D","J","H1"))
 # nema.lnorm <- subset(nema, select=c("BI","CI", "PPI", "PPI.1"))
 # nema.gamma <- subset(nema, select=c("MI", "MI25", "N"))
 # 
-outlier  <- list(nema.SI <- 1:24,
-                      nema.EI <- 1:24,
-                      nema.sigmaMI <- -c(3,17),
-                      nema.sigmaMI25 <- 1:24,
-                      nema.SR <- 1:24,
-                      nema.rarefy <- 1:24,
-                      nema.H <- 1:24,
-                      nema.D <- 1:24,
-                      nema.J <- 1:24,
-                      nema.H1 <- 1:24)
+# outlier  <- list(nema.SI <- 1:24,
+#                       nema.EI <- 1:24,
+#                       nema.sigmaMI <- -c(3,17),
+#                       nema.sigmaMI25 <- 1:24,
+#                       nema.SR <- 1:24,
+#                       nema.rarefy <- 1:24,
+#                       nema.H <- 1:24,
+#                       nema.D <- 1:24,
+#                       nema.J <- 1:24,
+#                       nema.H1 <- 1:24)
 # outlier.lnorm <- list(nema.BI <- -c(24,9),
 #                       nema.CI <- -24,
 #                       nema.PPI <- -c(6,19),
@@ -236,7 +236,7 @@ outlier  <- list(nema.SI <- 1:24,
 #                       nema.MI25 <- 1:24,
 #                       nema.N <- 1:24)
 
-p <- ncol(nema)
+# p <- ncol(nema)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -246,8 +246,6 @@ p <- ncol(nema)
 
 # normal LMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-p <- ncol(nema)
 
 p.indi.lmer <- matrix(NA,3,2+p)
 colnames(p.indi.lmer) <- c("Env", "DF", colnames(nema)[1:p])

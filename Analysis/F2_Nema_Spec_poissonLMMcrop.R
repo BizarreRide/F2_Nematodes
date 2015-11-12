@@ -1,8 +1,8 @@
 ###########################
-# F2 Nematodes
-# Binomial GLMM
+# F2 spectodes
+# Distribution check of spectode indices
 # Quentin Schorpp
-# 11.08.2015
+# 10.11.2015
 ###########################
 
 
@@ -15,7 +15,6 @@ source("Data/DataProcessing/EnvDataProcessing.R")
 data <- fam.org
 source("Data/DataProcessing/FamDatProcessing.R") 
 source("Data/DataProcessing/AverageData.R") 
-
 
 asinTransform <- function(p) { asin(sqrt(p)) }
 
@@ -36,8 +35,8 @@ library(lmerTest)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # as needed
-# source("Data/DataProcessing/MaturityIndices.R") 
-# source("Data/DataProcessing/FaunalProfileIndices.R") 
+# source("Data/DataProcessing/Maturityindices.R") 
+# source("Data/DataProcessing/FaunalProfileindices.R") 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -47,6 +46,7 @@ library(lmerTest)
 # create interaction factor for interaction between age_class and samcam, 
 # to see if age_class effects stay constant
 
+env.av$agsam <- with(env.av, interaction(age_class,samcam))
 #env.av$c <-  env1$c # include carbon
 
 #fam.rel <- round(fam.rel*100,0) # choose basis data for faunal profile (.org, .rel, .usc)
@@ -54,7 +54,7 @@ library(lmerTest)
 indices <- data.frame(age_class=env.av$age_class, 
                       field.ID=env.av$field.ID, 
                       crop=env.av$crop, 
-                      N=round(rowSums(fam.av),0), 
+                      trials=round(rowSums(fam.av),0), 
                       n=env.av$n, 
                       mc = env.av$mc, 
                       pH = env.av$pH, 
@@ -62,22 +62,17 @@ indices <- data.frame(age_class=env.av$age_class,
 indices$ID <- 1:nrow(indices)
 
 indices.backup <- indices
-indices <- droplevels(indices.backup)
+indices <- indices.backup
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# 1. Analysis of FeedingTypes ####
+# 1. Analysis spectode indices ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-data=fam.av
-source("Data/DataProcessing/FeedingTypes.R") 
-colnames(fety)[2:10] <- c("herbivoresb","herbivoresc","herbivoresd","herbivorese","fungivores","bacterivores", "carnivores", "omnivores", "Tylenchidae")
-ncr <- as.data.frame(fety[,-1])
 
-ncr <- round(ncr[,c(5,6)],0)
+spec <- round(fam.av[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae")],0)
 
-ncr.backup <- ncr/rowSums(ncr)
 
-p <- ncol(ncr)
+p <- ncol(spec)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -85,11 +80,11 @@ p <- ncol(ncr)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pvector <- c(1:p)
 for (i in 1:p) {
-  fk <-  fligner.test(ncr[,i] ~ indices$crop)
+  fk <-  fligner.test(spec[,i] ~ indices$crop)
   pvector[i] <- fk$p.value
-  boxplot(ncr[,i]~indices$crop)
+  boxplot(spec[,i]~indices$crop)
 }
-any(pvector<0.05)
+any(pvector<0.05) # Here is sth. wrong!!
 pvector
 
 # There is no violation of heterosecedasticity for any of the indices
@@ -106,28 +101,28 @@ for(i in 1:p) {
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  indices$y <- ncr[,i]
+  indices$y <- spec[,i]
   plot(indices$y)
   boxplot(indices$y)
   hist(indices$y, main="")
   plot(indices$y^2)
-  title(names(ncr)[i],outer=TRUE)
+  title(names(spec)[i],outer=TRUE)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # Detecting Outliers ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+row.names(spec) <- 1:nrow(spec)
 for(i in 1:p) {
   par(mfrow = c(2,2),
       mar = c(3,3,0,1),
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  indices$y <- ncr[,i]
-  car::Boxplot(indices$y ~ indices$age_class)
+  indices$y <- spec[,i]
   car::Boxplot(indices$y ~ indices$crop)
-  title(names(ncr)[i],outer=TRUE)
+  title(names(spec)[i],outer=TRUE)
 }
 
 # outliers:
@@ -137,94 +132,129 @@ for(i in 1:p) {
 
 # age_class:
 # bacterivores decrease
-# herbivores increase
+# herbivores ispecease
 # fungivores have an polynomial relationship
 
 # samcam:
-# carnivores increase in the second year, only in Silphie!
+# carnivores ispecease in the second year, only in Silphie!
 # no big differences for the others
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # drop Outliers ####
-outlier <- list(ncr.fungi <- -c(15,9),
-                ncr.bacti <- -c(15,9))
+outlier <- list(spec.Tyl <- 1:18,
+                spec.Aph <- -9,
+                spec.Hop <- 1:18,
+                spec.Cph <- 1:18,
+                spec.Plec <- -17,
+                spec.Telo <- 1:18)
 
 
+# change factor properties
 indices$age_class2 <- indices$age_class
 indices$age_class <- as.ordered(indices$age_class)
 indices$age_class <- indices$age_class2
 
-
 str(indices)
-
-# Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-p.ncr.biglmer.crop <- matrix(NA,3,2+p)
-colnames(p.ncr.biglmer.crop) <- c("Env", "DF", colnames(ncr)[1:p])
+# Distribution plots
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-f.ncr.biglmer.crop <- p.ncr.biglmer.crop
+library(MASS)
+library(car)
 
-ncr.biglmer.crop <- list()
+
+for (i in 1:p) {
+  par(mfrow = c(2,2),
+      mar = c(3,3,0,1),
+      mgp = c(1.5,0.5,0),
+      tck = -0.03,
+      oma = c(0,0,2,0))
+  y <- spec[outlier[[i]],i] + 1
+  qqp(y, "norm")
+  qqp(y, "lnorm")
+  
+  #nbinom <- fitdistr(y, "negative binomial")
+  #qqp(y, "nbinom", size = nbinom$estimate[[1]], mu = nbinom$estimate[[2]])
+  
+  poisson <- fitdistr(y, "Poisson")
+  qqp(y, "pois", poisson$estimate)
+  
+  #gamma <- fitdistr(y, "gamma")
+  #qqp(y, "gamma", shape = gamma$estimate[[1]], rate = gamma$estimate[[2]])
+  
+  
+  title(names(spec)[i],outer=TRUE)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# poisson LMM ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+p <- ncol(spec)
+
+p.spec.lmer.crop <- matrix(NA,2,2+p)
+colnames(p.spec.lmer.crop) <- c("Env", "DF", colnames(spec)[1:p])
+
+f.spec.lmer.crop <- p.spec.lmer.crop
+
+spec.lmer.crop <- list()
+
+
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
-  indices2$scs <- ncr[outlier[[i]],i]
-  indices2$fail <- rowSums(ncr[outlier[[i]],]) - ncr[outlier[[i]],i]
-  model <- glmer(cbind(scs,fail) ~ crop + (1|ID), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-  #model <- glmer(cbind(scs,fail) ~ crop - 1   + (1|ID) + (1|age_class), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  indices2$y <- spec[outlier[[i]],i]
+  model <- glm(y ~ crop , family=poisson(link="log"), indices2)
+  #model <- lmer(y ~ crop + (1|age_class) , indices2)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
-  name <- paste("ncr",i,names(ncr)[i], sep = ".")
+  name <- paste("spec",i,names(spec)[i], sep = ".")
   assign(name, model)
-  ncr.biglmer.crop[[i]] <- assign(name, model)
-  f.ncr.biglmer.crop[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.ncr.biglmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  spec.lmer.crop[[i]] <- assign(name, model)
+  f.spec.lmer.crop[,i+2] <- round(car::Anova(model)$"LR Chisq"[1],2)
+  p.spec.lmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)"[1],3)
+  #f.spec.lmer.crop[,i+2] <- round(car::Anova(model)$"Chisq",2)
+  #p.spec.lmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.ncr.biglmer.crop[,1] <- p.ncr.biglmer.crop[,1]  <- row.names(Anova(model))
-f.ncr.biglmer.crop[,2] <- p.ncr.biglmer.crop[,2]  <- Anova(model)$"Df"
+f.spec.lmer.crop[,1] <- p.spec.lmer.crop[,1]  <- row.names(Anova(model))
+f.spec.lmer.crop[,2] <- p.spec.lmer.crop[,2]  <- Anova(model)$"Df"
+
 
 mod.names <- c(1:p)
-for(i in 1:p) { mod.names[i] <- c(paste("ncr",i,names(ncr)[i], sep = "."))}
-names(ncr.biglmer.crop)[1:p] <- mod.names
+for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(spec)[i], sep = "."))}
+names(spec.lmer.crop)[1:p] <- mod.names
 
 
-r2.ncr.biglmer.crop <- matrix(NA,2,p)
-row.names(r2.ncr.biglmer.crop) <- c("R2m", "R2c")
-colnames(r2.ncr.biglmer.crop) <- colnames(ncr)
+r2.spec.lmer.crop <- matrix(NA,2,p)
+row.names(r2.spec.lmer.crop) <- c("R2m", "R2c")
+colnames(r2.spec.lmer.crop) <- colnames(spec)
 
 for(i in 1:p) {
-  r2.ncr.biglmer.crop[,i] <- MuMIn::r.squaredGLMM(ncr.biglmer.crop[[i]])
+  r2.spec.lmer.crop[,i] <- MuMIn::r.squaredGLMM(spec.lmer.crop[[i]])
 }
 
-# save(list=c("f.ncr.biglmer.crop","p.ncr.biglmer.crop"), file="Results/CHi2+p_ncr_bnGLMM_crop.rda")
-# write.csv(f.ncr.biglmer.crop, file="Results/Chi2_ncr_bnGLMM_crop.csv")
-# write.csv(p.ncr.biglmer.crop, file="Results/p_ncr_bnGLMM_crop.csv")
-# write.csv(r2.ncr.biglmer.crop, file="Results/p_ncr_bnGLMM_crop.csv")
-
-
-dispersion_glmer(model)
+# save(list=c("f.spec.lmer.crop","p.spec.lmer.crop", "r2.spec.lmer.crop"), file="Results/CHi2+p_spec_LM_crop.rda")
+# write.csv(f.spec.lmer.crop, file="Results/Chi2_spec_LM_crop.csv")
+# write.csv(p.spec.lmer.crop, file="Results/p_spec_LM_crop.csv")
+# write.csv(r2.spec.lmer.crop, file="Results/p_spec_LM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Overdispersion ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-### binomial GLMM - Model Validation ####
+### poisson LMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
-  # print(list(summary(ncr.biglmer.crop[[k]]),Anova(ncr.biglmer.crop[[k]], type="III")))
-  #corvif(ncr.biglmer.crop[[k]])
+  # print(list(summary(spec.lmer.crop[[k]]),Anova(spec.lmer.crop[[k]], type="III")))
+  #corvif(spec.lmer.crop[[k]])
   
-  E1 <- resid(ncr.biglmer.crop[[k]], type="pearson")
-  E2 <- resid(ncr.biglmer.crop[[k]], type="response")
-  F1 <- fitted(ncr.biglmer.crop[[k]], type="response")
-  P1 <- predict(ncr.biglmer.crop[[k]], type="response")
+  E1 <- resid(spec.lmer.crop[[k]], type="pearson")
+  E2 <- resid(spec.lmer.crop[[k]], type="response")
+  F1 <- fitted(spec.lmer.crop[[k]], type="response")
+  P1 <- predict(spec.lmer.crop[[k]], type="response")
   
   par(mfrow=c(2,2),
       mar=c(4,4.5,1,2),
@@ -247,7 +277,7 @@ for(k in 1:p){
   lines(density(E1), col="light blue", lwd=3)
   lines(density(E1, adjust=2), lty="dotted", col="darkgreen", lwd=2) 
   
-  title(names(ncr.biglmer.crop)[k], outer=TRUE)
+  title(names(spec.lmer.crop)[k], outer=TRUE)
   
   # Normal QQ Plots
   qqnorm(E2)
@@ -257,32 +287,32 @@ for(k in 1:p){
   boxplot(E1 ~ indices$age_class[outlier[[k]]], cex.lab = 1.5, xlab="age_class", ylab="Residuals")
   
   # plot samcam vs. residuals
-  boxplot(E1 ~ indices$crop[outlier[[k]]],cex.lab = 1.5, xlab="agsam", ylab="Residuals")
+  boxplot(E1 ~ indices$crop[outlier[[k]]],cex.lab = 1.5, xlab="samcam", ylab="Residuals")
   
-  title(names(ncr.biglmer.crop)[k], outer=TRUE)
   
-  indices$y <- ncr[,k]
+  title(names(spec.lmer.crop)[k], outer=TRUE)
+  
+  indices$y <- spec[,k]
   
   par(mfrow=c(1,1))
   scatter.smooth(F1,indices$y[outlier[[k]]], cex.lab = 1.5, xlab="Fitted values", ylab="Original values")
   #text(F1,indices$y,label=interaction(indices$field.ID,indices$samcam),col='red')
   abline(h = 0, v=0, lty=2)
   
-  title(names(ncr.biglmer.crop)[k], outer=TRUE)
+  title(names(spec.lmer.crop)[k], outer=TRUE)
   
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 # Residuals against variables not in the model ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for(k in 1:p){ 
-  #corvif(ncr.biglmer.crop[[k]])
+  #corvif(spec.lmer.crop[[k]])
   
-  E1 <- resid(ncr.biglmer.crop[[k]], type="pearson")
-  E2 <- resid(ncr.biglmer.crop[[k]], type="response")
-  F1 <- fitted(ncr.biglmer.crop[[k]], type="response")
-  P1 <- predict(ncr.biglmer.crop[[k]], type="response")
+  E1 <- resid(spec.lmer.crop[[k]], type="pearson")
+  E2 <- resid(spec.lmer.crop[[k]], type="response")
+  F1 <- fitted(spec.lmer.crop[[k]], type="response")
+  P1 <- predict(spec.lmer.crop[[k]], type="response")
   
   par(mfrow=c(2,2),
       mar=c(4,4.5,1,2),
@@ -305,16 +335,17 @@ for(k in 1:p){
   scatter.smooth(indices$ata1[outlier[[k]]], E1, cex.lab = 1.5, xlab="Temperature", ylab="Predicted")
   abline(h = 0, v=0, lty=2)
   
-  title(names(ncr.biglmer.crop)[k], outer=TRUE)
+  title(names(spec.lmer.crop)[k], outer=TRUE)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 
 # Influence measures ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 infl <- list()
 for (k in 1:p) {
-  infl[[k]] <- influence(ncr.biglmer.crop[[k]], obs=TRUE)
+  infl[[k]] <- influence(spec.lmer.crop[[k]], obs=TRUE)
 }
 
 for(k in 1:p) {
@@ -326,4 +357,8 @@ for(k in 1:p) {
 #####
 
 # END
+
+
+
+
 

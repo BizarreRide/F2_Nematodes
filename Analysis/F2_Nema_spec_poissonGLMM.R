@@ -166,9 +166,9 @@ indices$samcam <- indices$samcam2
 
 str(indices)
 
-# Bi☺nomial GLMM ####
+# Poisson GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+#require(glmmADMB)
 p.spec.pslmer <- matrix(NA,3,2+p)
 colnames(p.spec.pslmer) <- c("Env", "DF", colnames(spec)[1:p])
 
@@ -179,7 +179,7 @@ spec.pslmer <- list()
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- spec[outlier[[i]],i]
-  model <- glmer(y ~ age_class*samcam  + (1|ID) + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  model <- glmer(y ~ age_class*samcam  + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
@@ -281,7 +281,7 @@ spec.lsmSC <- list()
 for (i in 1:p) {
   # get the results on a back transformed scale:
   lsm <- lsmeans(spec.pslmer[[i]], pairwise ~ samcam|age_class)
-  summary(lsm, type = "response")
+  print(summary(lsm, type = "response"))
   name <- paste("lsm",i,names(spec)[i], sep = ".")
   spec.lsmSC[[i]] <- assign(name, lsm)
 }
@@ -295,7 +295,7 @@ for (i in 1:p) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-### binomial GLMM - Model Validation ####
+### poisson GLMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 

@@ -229,7 +229,7 @@ nema <- subset(nema, select=c("BI","CI", "PPI", "PPI.1", "MI", "MI25", "N"))
 #                       nema.J <- 1:24,
 #                       nema.H1 <- 1:24)
 outlier <- list(nema.BI <- -c(24,9),
-                      nema.CI <- -24,
+                      nema.CI <- -c(11,20,24),
                       nema.PPI <- -c(6,19),
                       nema.PPI1 <- 1:24,
                       nema.MI <- -17,
@@ -242,10 +242,8 @@ p <- ncol(nema)
 #outlier <- outlier[-4]
 
 
-# normal LMM ####
+# log-normal LMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-p <- ncol(nema)
 
 p.indi.lnlmer <- matrix(NA,3,2+p)
 colnames(p.indi.lnlmer) <- c("Env", "DF", colnames(nema)[1:p])
@@ -314,10 +312,10 @@ for (i in 1:p) {
   #lsm <- lsmeans(indi.lnlmer[[i]],   ~ age_class*samcam, adjust="tukey",contr= "cld")
   x <- cld(lsm, type = "response")
   indi.lnLettersAS[,i] <- x$".group"
-  indi.lnestimates[,i] <- x$"lsmean"
+  indi.lnestimates[,i] <- x$"response"
   indi.lnpairs[,((4*i)-3)] <- x$"age_class"
   indi.lnpairs[,((4*i)-2)] <- x$"samcam"
-  indi.lnpairs[,((4*i)-1)] <- x$"lsmean"
+  indi.lnpairs[,((4*i)-1)] <- x$"response"
   indi.lnpairs[,((4*i)-0)] <- x$".group"
   print(cld(lsm, type = "response"))
   name <- paste("lsm",i,names(indices2)[i], sep = ".")
@@ -328,10 +326,10 @@ for (i in 1:p) {
   #title(names(ncr.biglmer)[i], outer=TRUE)
 }
 
-#  save(list=c("f.indi.lnlmer","p.indi.lnlmer","indi.lnrsquared","indi.lnLettersAS", "indi.lnestimates", "indi.lnpairs"), file="Results/CHi2+p_indi_lnLMM.rda")
-#  write.csv(indi.ln.LettersAS, file="Results/letters_indi._lnLMM.csv")
-#  write.csv(indi.lnestimates, file="Results/estim_indi._lnLMM.csv")
-#  write.csv(indi.lnpairs, file="Results/pairs_indi._lnLMM.csv")
+#  save(list=c("f.indi.lnlmer","p.indi.lnlmer","indi.lnLettersAS", "indi.lnestimates", "indi.lnpairs"), file="Results/CHi2+p_indi_lnLMM.rda")
+#  write.csv(indi.lnLettersAS, file="Results/letters_indi_lnLMM.csv")
+#  write.csv(indi.lnestimates, file="Results/estim_indi_lnLMM.csv")
+#  write.csv(indi.lnpairs, file="Results/pairs_indi_lnLMM.csv")
 
 for(i in 1:p){
   lsmip(indi.lsm[[i]], age_class ~ samcam, type = "response")
@@ -371,7 +369,7 @@ for (i in 1:p) {
 
 
 
-### normal LMM - Model Validation ####
+### log normal LMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
