@@ -1,0 +1,12 @@
+
+How do I calculate the fitness of species when using the capscale() function (vegan package of R)?
+*****************************************************************************************************
+In a constrained ordination, I would like to display only the species the best explained by the model. With a RDA, I use goodness of fit function. However, I would like to use the Bray-Curtis distance, so I use a capscale () function. Unfortunately, the goodness() function does not work because "species is not available". Can anyone help me?
+
+Thank you very much!
+
+
+There is really no way to do this similarly as with `goodness` function. The analysis is based on among-sampling-unit dissimilarities, and information in species is lost when you calculate the dissimilarities. In `capscale`, all results on species are added after the analysis to the result that was found without information on species. In those analyses where vegan `goodness` provides species information, the species also influence the results and the species are used in the analysis.
+
+Basically, we fit the species to the ordination result, and it may be possible to estimate the goodness of fi. In principle, this is always possible, but in practice we may not provide tools, and you're on your own (pull requests are welcome in github). Currently, the goodness of fit can be analysed for fitted vectors (`envfit`) and response surfaces (`ordisurf`) but not for the fitted centroids (`wascores`) that we now use as the default output (pull requests are welcome). 
+______________________________________________________________________________________________________________

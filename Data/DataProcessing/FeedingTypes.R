@@ -7,6 +7,9 @@
 
 master <- read.csv("Data/F2_Nema_MastertableFam.csv", sep=";")
 master$c.p <- as.factor(master$c.p)
+master$FeedingType <- as.character(master$FeedingType)
+master[29,"FeedingType"] <- "T"
+master$FeedingType <- factor(master$FeedingType)
 
 fety <- data %>% 
   add_rownames("ID") %>% 

@@ -63,9 +63,9 @@ cleanplot.pca(env.fin.pca)
 rm(env.fin.pca, ev)
 
 
-pairs(env.fin, lower.panel=panel.smooth, upper.panel=panel.cor)
-pairs(env.fin[,5:10], lower.panel=panel.smooth, upper.panel=panel.cor)
-pairs(env.fin[,11:15], lower.panel=panel.smooth, upper.panel=panel.cor)
+#pairs(env.fin, lower.panel=panel.smooth, upper.panel=panel.cor)
+#pairs(env.fin[,5:10], lower.panel=panel.smooth, upper.panel=panel.cor)
+#pairs(env.fin[,11:15], lower.panel=panel.smooth, upper.panel=panel.cor)
 
 dev.off()
 

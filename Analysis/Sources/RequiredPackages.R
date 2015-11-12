@@ -7,19 +7,18 @@
 
 # Packages:
 library(vegan)
+library(BiodiversityR)
 #library(faraway)
 library(ggplot2)
-library(grid)
+library(extrafont)
 #library(ggbiplot)
 library(multcomp)
-library(nlme)
 library(lme4)
 library(car)
-library(extrafont)
-library(BiodiversityR)
 library(reshape2)
 library(dplyr)
 library(tidyr)
+library(grid)
 
 # Functions:
 source("Analysis/sources/cleanplot.pca.R")

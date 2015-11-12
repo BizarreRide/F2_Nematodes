@@ -91,7 +91,7 @@ ggsave("FaunalProfileTotalAvSe.pdf", width = 7, height= 8.6, units="cm", useDing
 # Miscallaneous Plot
 ggplot(FaPro, aes(x=SI, y=EI, shape=env1$age_class, fill=env1$age, group=env1$field.ID)) + 
   geom_point(size=4) + #aes(size=env1$n)
-  geom_line(arrow = arrow(angle = 15, ends = "first", type = "closed")) +
+  geom_path(aes(group=env1$field.ID),arrow = arrow(angle = 15, type = "closed")) +
   scale_shape_manual(values=c(1,22,21,24,23)) + 
   scale_fill_gradient(low="blue", high="red") +
   scale_x_continuous(limits=c(0,100), name="Structure Index") +
@@ -100,6 +100,7 @@ ggplot(FaPro, aes(x=SI, y=EI, shape=env1$age_class, fill=env1$age, group=env1$fi
   ggtitle("Faunal Profile") +
   #facet_grid(env1$samcam ~ .) +
   theme_bw()
+ggsave("Results/FaunalProfileArrows.pdf", width = 7, height= 8.6, units="cm", useDingbats=FALSE)
 
 ggplot(FaPro[env1$samcam==2,], aes(x=SI, y=EI, shape=env1$age_class[env1$samcam==2], fill=env1$age[env1$samcam==2])) + 
   geom_point(size=4) + #aes(size=env1$n)

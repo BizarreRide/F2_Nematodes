@@ -64,7 +64,7 @@ colnames(MI.matrix) <- colnames(data)
 
 # c-p weighting of abundances
 for (i in 1:ncol(data)){
-  for (j in 1:nrow(data)){
+  for (j in 1:nrow(master)){
     if (colnames(data)[i] == master[j,2]) {
       MI.matrix[,i] <- (data[,i]*master[j,4])/data.sum$MI  # multiply abundances by cp values and divide by sum of group members
     }
@@ -88,7 +88,7 @@ colnames(MI25.matrix) <- colnames(data)
 
 # c-p weighting of  abundances
 for (i in 1:ncol(data)){
-  for (j in 1:nrow(data)){
+  for (j in 1:nrow(master)){
     if (colnames(data)[i] == master[j,2]) {
       MI25.matrix[,i] <- (data[,i]*master[j,4])/data.sum$MI25
     }
@@ -113,7 +113,7 @@ colnames(sigmaMI.matrix) <- colnames(data)
 
 # c-p weighting of  abundances
 for (i in 1:ncol(data)){
-  for (j in 1:nrow(data)){
+  for (j in 1:nrow(master)){
     if (colnames(data)[i] == master[j,2]) {
       sigmaMI.matrix[,i] <- (data[,i]*master[j,4])/data.sum$N
     }
@@ -136,7 +136,7 @@ colnames(sigmaMI25.matrix) <- colnames(data)
 
 # c-p weighting of  abundances
 for (i in 1:ncol(data)){
-  for (j in 1:nrow(data)){
+  for (j in 1:nrow(master)){
     if (colnames(data)[i] == master[j,2]) {
       sigmaMI25.matrix[,i] <- (data[,i]*master[j,4])/data.sum$sigmaMI25
     }
@@ -162,7 +162,7 @@ colnames(PPI.matrix) <- colnames(data)
 
 # c-p weighting of abundances
 for (i in 1:length(data)){
-  for (j in 1:30){
+  for (j in 1:nrow(master)){
     if (colnames(data)[i] == master[j,2]) {
       PPI.matrix[,i] <- (data[,i]*master[j,4])/PPI.sum$PPI
     }

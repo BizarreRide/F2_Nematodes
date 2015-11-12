@@ -1,0 +1,67 @@
+Alle Möglichkeiten Proportional Data zu analysieren:
+ A  Nichtparametrische repeated measurements Analysen:
+  A1 Brunner Munzel test - keine Ahnung wie
+  A2 repmes friedman test - keine Ahnung wie, keine Interaktionen möglich
+  A3 repmes kruskal Wallis (Okada und Harada) -  geht nicht, Kruksal wallis kann nur einen faktor testen keine Interaktionsn
+  permutations test: 
+  A4 PERMANOVA - keine repmes variante, außer strata=samcam?
+               - vlt gar nicht nötig wenn repmes nur 2???
+               - adonis mit methid= "euclidean"
+  
+  GLMM
+  B1 - binomial glmm mit glmer, Residuen vlt. nicht zu gebrauchen, Model Selection aufwendig
+       
+       Multimodel averaging? - Here i could use all Covariates, if they are not significant the'll stay in the model,            despite the model will e improved
+       Likelihood Ratio tests - 
+       AIC - selection - use Multimodel averaging
+       Nur zwei Faktoren samcam und age_class? -  macht vlt das Leben leichter
+       quasibinomial? - könnte die einzige Chance sein, die residuen zu verbessern
+                      - geht nicht mehr, geht nir noch durch random factor row number (1|ID)
+       Outliers? Kann ich bei 3 Replikaten Outlier rauswerfen?? - ja denn die tatsächliche sample size ist 30, darauf             kommt es an
+       Overdispersion muss geprüft werden
+       komplexe random strukturen
+       VIFs checken
+       
+  B2 - binomial glmm ohne random faktoren, einfach rasuschmeißen, da zu wenige levels
+  
+  B3 - lmm mit arcsine transformierten Daten / Bix-Cox Transformation
+  B4 - lm mit arcsine transformierten Daten /Box Cox Tranformation
+
+
+ANOVA - mit repeated measurements (ezANOVA?)
+      - ohne repeated measurements
+  
+  
+       
+Das Protokoll A practical guide to mixed models durchgehen
+       
+       
+       
+Next steps:
+
+WITHOUT COVARIATES
+y ~ ac*sc 
+
+arcsine transformed LMM <- p.fety.lmer
+arcsine trandformed LM  <- p.fety.lm
+
+binomial GLMM  <- p.fety.biglmer
+binomial GLM   <- p.fety.biglm
+
+repmes ANOVA (arcsine?) <- p.fety.rmaov 
+                        <- Error: Modell ist singulär!! 
+                        <- aov(response ~ group*time + Error(subject/(group*time)), fety3)
+
+pANOVA - Post Hoc? <- p.fety.paov. not different from ANOVA in the uivariate case
+nparLD - Post Hoc? <- p.fety.nparLD
+
+
+
+
+
+
+
+
+
+
+    
