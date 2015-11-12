@@ -202,6 +202,8 @@ row.names(spec.rsquared) <- c("R2m", "R2c")
 colnames(spec.rsquared) <- colnames(spec)
 
 for(i in 1:p) {
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- spec[outlier[[i]],i]
   spec.rsquared[,i] <- MuMIn::r.squaredGLMM(spec.pslmer[[i]])
 }
 
