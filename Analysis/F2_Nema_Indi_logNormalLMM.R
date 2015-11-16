@@ -245,10 +245,9 @@ p <- ncol(nema)
 # log-normal LMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-p.indi.lnlmer <- matrix(NA,3,2+p)
-colnames(p.indi.lnlmer) <- c("Env", "DF", colnames(nema)[1:p])
-
-f.indi.lnlmer <- p.indi.lnlmer
+fp.indi.lnlmer <- matrix(NA,4,2+(2*p))
+colnames(fp.indi.lnlmer) <- c("Env", "DF", rep(colnames(nema)[1:p], each=2))
+fp.indi.lnlmer[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 indi.lnlmer <- list()
 
@@ -263,29 +262,29 @@ for(i in 1:p) {
   name <- paste("indi",i,names(nema)[i], sep = ".")
   assign(name, model)
   indi.lnlmer[[i]] <- assign(name, model)
-  f.indi.lnlmer[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.indi.lnlmer[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  fp.indi.lnlmer[2:4,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  fp.indi.lnlmer[2:4,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.indi.lnlmer[,1] <- p.indi.lnlmer[,1]  <- row.names(Anova(model))
-f.indi.lnlmer[,2] <- p.indi.lnlmer[,2]  <- Anova(model)$"Df"
+fp.indi.lnlmer[2:4,1]  <- row.names(Anova(model))
+fp.indi.lnlmer[2:4,2]  <- Anova(model)$"Df"
 
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(nema)[i], sep = "."))}
 names(indi.lnlmer)[1:p] <- mod.names
 
-indi.rsquared <- matrix(NA,2,p)
-row.names(indi.rsquared) <- c("R2m", "R2c")
-colnames(indi.rsquared) <- colnames(nema)
+indi.rsquared <- matrix(NA,2,2+2*p)
+indi.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  indi.lnrsquared[,i] <- MuMIn::r.squaredGLMM(indi.lnlmer[[i]])
+  indi.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(indi.lnlmer[[i]]),2)
 }
+colnames(indi.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
+
+fpr2.indi.lnlmer <- rbind(fp.indi.lnlmer, indi.rsquared, c("X", "X", rep("binomial", 2*p)))
 
 # save(list=c("f.indi.lnlmer","p.indi.lnlmer","indi.rsquared"), file="Results/CHi2+p+r2_Indi_lnLMM.rda")
-# write.csv(f.indi.lnlmer, file="Results/Chi2_Indi_lnLMM.csv")
-# write.csv(p.indi.lnlmer, file="Results/p_Indi_lnLMM.csv")
-# write.csv(indi.lnrsquared, file="Results/r2_Indi_lnLMM.csv")
+# write.csv(fpr2.indi.lnlmer, file="Results/fpr2_Indi_lnLMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

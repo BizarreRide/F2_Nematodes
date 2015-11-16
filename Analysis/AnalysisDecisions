@@ -57,8 +57,11 @@ nparLD - Post Hoc? <- p.fety.nparLD
 
 
 
+Die Analyse der Unterschiede für Crop könnte auch anders aussehen:
 
+1. age_class könnte als random faktor in die Modelle integriert werden: (1|age_class) oder (1|crop/age_class)
 
+2. crop wird durch age_class ersetzt und mit lsmeans über trt.vs.ctrl als silphie gegen Mais analysiert...
 
 
 

@@ -65,7 +65,7 @@ indices <- data.frame(ID = 1:nrow(env1),
 
 indices$nsamcam <- as.numeric(factor(indices$samcam))
 
-indices.backup <- indices
+indices.backup <- droplevels(indices)
 indices <- indices.backup[!indices.backup$age_class %in% "A_Cm",]
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -179,12 +179,11 @@ str(indices)
 # Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-p.fety.biglmer <- matrix(NA,3,2+p)
-colnames(p.fety.biglmer) <- c("Env", "DF", colnames(fety2)[1:p])
+Fp.frame <- matrix(NA,4,2+(2*p))
+colnames(Fp.frame) <- c("Env", "DF", rep(colnames(fety2)[1:p], each=2))
+Fp.frame[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
-f.fety.biglmer <- p.fety.biglmer
-
-fety.biglmer <- list()
+model.list <- list()
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
@@ -194,34 +193,38 @@ for(i in 1:p) {
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
+  print(overdisp_fun(model))
   name <- paste("fety",i,names(fety2)[i], sep = ".")
   assign(name, model)
-  fety.biglmer[[i]] <- assign(name, model)
-  f.fety.biglmer[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.fety.biglmer[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  model.list[[i]] <- assign(name, model)
+  Fp.frame[2:4,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  Fp.frame[2:4,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  # afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|field.ID), family=binomial, indices2,method = "LRT")
 }
-f.fety.biglmer[,1] <- p.fety.biglmer[,1]  <- row.names(Anova(model))
-f.fety.biglmer[,2] <- p.fety.biglmer[,2]  <- Anova(model)$"Df"
+Fp.frame[2:4,1]  <- row.names(Anova(model))
+Fp.frame[2:4,2]  <- Anova(model)$"Df"
+
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(fety2)[i], sep = "."))}
-names(fety.biglmer)[1:p] <- mod.names
+names(model.list)[1:p] <- mod.names
+str(indices2)
 
-
-fety.rsquared <- matrix(NA,2,p)
-row.names(fety.rsquared) <- c("R2m", "R2c")
-colnames(fety.rsquared) <- colnames(fety2)
+fety.rsquared <- matrix(NA,2,2+2*p)
+fety.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  fety.rsquared[,i] <- MuMIn::r.squaredGLMM(fety.biglmer[[i]])
+  fety.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(model.list[[i]]),2)
 }
+colnames(fety.rsquared) <- c("X", "X", rep(colnames(fety2)[1:p],each=2))
 
-#dispersion_glmer(model)
-# 
-# save(list=c("f.fety.biglmer","p.fety.biglmer","fety.rsquared"), file="Results/CHi2+p_Fety_bnGLMM.rda")
-# write.csv(f.fety.biglmer, file="Results/Chi2_Fety_bnGLMM.csv")
-# write.csv(p.fety.biglmer, file="Results/p_Fety_bnGLMM.csv")
-# write.csv(fety.rsquared, file="Results/r2_Fety_bnGLMM.csv")
+FpR2.frame <- rbind(Fp.frame, fety.rsquared, c("X", "X", rep("binomial", 2*p)))
+
+fety.biglmer = model.list
+
+
+# save(FpR2.frame, file="Results/ANOVATables/CHi2+p_Fety_bnGLMM.rda")
+# write.csv(FpR2.frame, file="Results/ANOVATables/Chi2_Fety_bnGLMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

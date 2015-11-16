@@ -238,14 +238,11 @@ p <- ncol(nema)
 
 p <- ncol(nema)
 
-p.indi.lnlmer.crop <- matrix(NA,2,2+p)
-colnames(p.indi.lnlmer.crop) <- c("Env", "DF", colnames(nema)[1:p])
-
-f.indi.lnlmer.crop <- p.indi.lnlmer.crop
+fp.indi.lnlmer.crop <- matrix(NA,2,2+(2*p))
+colnames(fp.indi.lnlmer.crop) <- c("Env", "DF", rep(colnames(nema)[1:p], each=2))
+fp.indi.lnlmer.crop[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 indi.lnlmer.crop <- list()
-
-
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
@@ -258,11 +255,11 @@ for(i in 1:p) {
   name <- paste("indi",i,names(nema)[i], sep = ".")
   assign(name, model)
   indi.lnlmer.crop[[i]] <- assign(name, model)
-  f.indi.lnlmer.crop[,i+2] <- round(car::Anova(model)$"LR Chisq"[1],2)
-  p.indi.lnlmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)"[1],3)
+  fp.indi.lnlmer.crop[2,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  fp.indi.lnlmer.crop[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.indi.lnlmer.crop[,1] <- p.indi.lnlmer.crop[,1]  <- row.names(Anova(model))
-f.indi.lnlmer.crop[,2] <- p.indi.lnlmer.crop[,2]  <- Anova(model)$"Df"
+fp.indi.lnlmer.crop[2,1]  <- row.names(Anova(model))
+fp.indi.lnlmer.crop[2,2]  <- Anova(model)$"Df"
 
 
 mod.names <- c(1:p)
@@ -270,18 +267,18 @@ for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(nema)[i], sep = "."))}
 names(indi.lnlmer.crop)[1:p] <- mod.names
 
 
-r2.indi.lnlmer.crop <- matrix(NA,2,p)
-row.names(r2.indi.lnlmer.crop) <- c("R2m", "R2c")
-colnames(r2.indi.lnlmer.crop) <- colnames(nema)
+indi.rsquared <- matrix(NA,2,2+2*p)
+indi.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  r2.indi.lnlmer.crop[,i] <- MuMIn::r.squaredGLMM(indi.lnlmer.crop[[i]])
+  indi.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(indi.biglmer.crop[[i]]),2)
 }
+colnames(indi.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
-# save(list=c("f.indi.lnlmer.crop","p.indi.lnlmer.crop"), file="Results/CHi2+p_indi_lnGLM_crop.rda")
-# write.csv(f.indi.lnlmer.crop, file="Results/Chi2_indi_lnGLM_crop.csv")
-# write.csv(p.indi.lnlmer.crop, file="Results/p_indi_lnGLM_crop.csv")
-# write.csv(r2.indi.lnlmer.crop, file="Results/p_indi_lnGLM_crop.csv")
+fpr2.indi.lnlmer.crop <- rbind(fp.indi.lnlmer.crop, indi.rsquared, c("X", "X", rep("binomial", 2*p)))
+
+# save(list=c("f.indi.lnlmer.crop","p.indi.lnlmer.crop", "r2.indi.lnlmer.crop"), file="Results/ANOVATables/CHi2+p_indi_lnGLM_crop.rda")
+# write.csv(f.indi.lnlmer.crop, file="Results/ANOVATables/FpR2_indi_lnGLM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

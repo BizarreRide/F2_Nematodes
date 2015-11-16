@@ -71,9 +71,10 @@ indices <- indices.backup
 data=fam.av
 source("Data/DataProcessing/MaturityIndices.R")
 source("Data/DataProcessing/FaunalProfileIndices.R") 
-biodiv <- biodiv.fun(round(fam.av,0))
+biodiv <- biodiv.fun(round(fam.av*counts.av$counts,0))
 
-nema.backup <- cbind(FaPro[,-c(1:5)], MaturityIndices, biodiv)
+
+nema.backup <- cbind(FaPro[,-c(1:5)], MaturityIndices, biodiv[,-7], N=counts.av$counts)
 nema <- round(nema.backup,2)
 
 
@@ -162,7 +163,7 @@ outlier <- list(nema.BI <- 1:18,
                 nema.D <- 1:18,
                 nema.J <- 1:18,
                 nema.H1 <- 1:18,
-                nema.N <- -18)
+                nema.N <- -15)
 
 
 # change factor properties
@@ -211,33 +212,31 @@ for (i in 1:p) {
 
 p <- ncol(nema)
 
-p.indi.lmer.crop <- matrix(NA,2,2+p)
-colnames(p.indi.lmer.crop) <- c("Env", "DF", colnames(nema)[1:p])
 
-f.indi.lmer.crop <- p.indi.lmer.crop
+fp.indi.lmer.crop <- matrix(NA,2,2+(2*p))
+colnames(fp.indi.lmer.crop) <- c("Env", "DF", rep(colnames(nema)[1:p], each=2))
+fp.indi.lmer.crop[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 indi.lmer.crop <- list()
 
 
 
 for(i in 1:p) {
-  indices2 <- indices[outlier[[i]],]
-  indices2$y <- nema[outlier[[i]],i]
-  model <- lm(y ~ crop , indices2)
-  #model <- lmer(y ~ crop + (1|age_class) , indices2)
+  indices2 <- indices[outlier[[17]],]
+  indices2$y <- nema[outlier[[17]],17]
+  model <- lm(y ~ age_class , indices2)
+  model <- lmer(y ~ age_class + (1|crop) , indices2)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
   name <- paste("indi",i,names(nema)[i], sep = ".")
   assign(name, model)
   indi.lmer.crop[[i]] <- assign(name, model)
-  f.indi.lmer.crop[,i+2] <- round(car::Anova(model)$"F"[1],2)
-  p.indi.lmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>F)"[1],3)
-  #f.indi.lmer.crop[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  #p.indi.lmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  fp.indi.lmer.crop[2,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  fp.indi.lmer.crop[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.indi.lmer.crop[,1] <- p.indi.lmer.crop[,1]  <- row.names(Anova(model))
-f.indi.lmer.crop[,2] <- p.indi.lmer.crop[,2]  <- Anova(model)$"Df"
+fp.indi.lmer.crop[2,1]  <- row.names(Anova(model))
+fp.indi.lmer.crop[2,2]  <- Anova(model)$"Df"
 
 
 mod.names <- c(1:p)
@@ -245,20 +244,33 @@ for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(nema)[i], sep = "."))}
 names(indi.lmer.crop)[1:p] <- mod.names
 
 
-r2.indi.lmer.crop <- matrix(NA,2,p)
-row.names(r2.indi.lmer.crop) <- c("R2m", "R2c")
-colnames(r2.indi.lmer.crop) <- colnames(nema)
+indi.rsquared <- matrix(NA,2,2+2*p)
+indi.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  r2.indi.lmer.crop[,i] <- MuMIn::r.squaredGLMM(indi.lmer.crop[[i]])
+  indi.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(indi.biglmer.crop[[i]]),2)
 }
+colnames(indi.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
-# save(list=c("f.indi.lmer.crop","p.indi.lmer.crop", "r2.indi.lmer.crop"), file="Results/CHi2+p_indi_LM_crop.rda")
-# write.csv(f.indi.lmer.crop, file="Results/Chi2_indi_LM_crop.csv")
-# write.csv(p.indi.lmer.crop, file="Results/p_indi_LM_crop.csv")
-# write.csv(r2.indi.lmer.crop, file="Results/p_indi_LM_crop.csv")
+fpr2.indi.lmer.crop <- rbind(fp.indi.lmer.crop, indi.rsquared, c("X", "X", rep("binomial", 2*p)))
+
+# save(list=c("f.indi.lmer.crop","p.indi.lmer.crop", "r2.indi.lmer.crop"), file="Results/ANOVATables/CHi2+p_indi_LM_crop.rda")
+# write.csv(fpr2.indi.lmer.crop, file="Results/ANOVATables/fpr2_indi_LM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+detach("package:lmerTest", unload=TRUE)
+library(lsmeans)
+
+for( i in 1:p) {
+lsm <- lsmeans(indi.lmer.crop[[i]], "age_class")
+print(lsm)
+lsm2 <- contrast(lsm, "trt.vs.ctrl", ref=c(2:5))
+print(lsm2)
+lsm2 <- contrast(lsm, "trt.vs.ctrl", ref=c(1))
+print(lsm2)
+Boxplot(y ~ age_class, indices2)
+}
 
 ### normal LMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

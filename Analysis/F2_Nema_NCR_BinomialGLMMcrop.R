@@ -160,10 +160,9 @@ str(indices)
 # Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-p.ncr.biglmer.crop <- matrix(NA,3,2+p)
-colnames(p.ncr.biglmer.crop) <- c("Env", "DF", colnames(ncr)[1:p])
-
-f.ncr.biglmer.crop <- p.ncr.biglmer.crop
+fp.ncr.biglmer.crop <- matrix(NA,2,2+(2*p))
+colnames(fp.ncr.biglmer.crop) <- c("Env", "DF", rep(colnames(ncr)[1:p], each=2))
+fp.ncr.biglmer.crop[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 ncr.biglmer.crop <- list()
 
@@ -179,32 +178,30 @@ for(i in 1:p) {
   name <- paste("ncr",i,names(ncr)[i], sep = ".")
   assign(name, model)
   ncr.biglmer.crop[[i]] <- assign(name, model)
-  f.ncr.biglmer.crop[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.ncr.biglmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  fp.ncr.biglmer.crop[2,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  fp.ncr.biglmer.crop[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.ncr.biglmer.crop[,1] <- p.ncr.biglmer.crop[,1]  <- row.names(Anova(model))
-f.ncr.biglmer.crop[,2] <- p.ncr.biglmer.crop[,2]  <- Anova(model)$"Df"
+fp.ncr.biglmer.crop[2,1]  <- row.names(Anova(model))
+fp.ncr.biglmer.crop[2,2]  <- Anova(model)$"Df"
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("ncr",i,names(ncr)[i], sep = "."))}
 names(ncr.biglmer.crop)[1:p] <- mod.names
 
 
-r2.ncr.biglmer.crop <- matrix(NA,2,p)
-row.names(r2.ncr.biglmer.crop) <- c("R2m", "R2c")
-colnames(r2.ncr.biglmer.crop) <- colnames(ncr)
+ncr.rsquared <- matrix(NA,2,2+2*p)
+ncr.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  r2.ncr.biglmer.crop[,i] <- MuMIn::r.squaredGLMM(ncr.biglmer.crop[[i]])
+  ncr.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ncr.biglmer.crop[[i]]),2)
 }
+colnames(ncr.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
-# save(list=c("f.ncr.biglmer.crop","p.ncr.biglmer.crop"), file="Results/CHi2+p_ncr_bnGLMM_crop.rda")
-# write.csv(f.ncr.biglmer.crop, file="Results/Chi2_ncr_bnGLMM_crop.csv")
-# write.csv(p.ncr.biglmer.crop, file="Results/p_ncr_bnGLMM_crop.csv")
-# write.csv(r2.ncr.biglmer.crop, file="Results/p_ncr_bnGLMM_crop.csv")
+fpr2.ncr.lmer.crop <- rbind(fp.ncr.biglmer.crop, indi.rsquared, c("X", "X", rep("binomial", 2*p)))
 
+# save(list=c("f.ncr.biglmer.crop","p.ncr.biglmer.crop", "r2.ncr.biglmer.crop"), file="Results/ANOVATables/CHi2+p_ncr_bnGLMM_crop.rda")
+# write.csv(fpr2.ncr.biglmer.crop, file="Results/ANOVATables/fpr2_ncr_bnGLMM_crop.csv")
 
-dispersion_glmer(model)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

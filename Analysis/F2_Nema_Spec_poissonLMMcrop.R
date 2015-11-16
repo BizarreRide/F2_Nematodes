@@ -69,7 +69,8 @@ indices <- indices.backup
 # 1. Analysis spectode indices ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-spec <- round(fam.av[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae")],0)
+fam.av.usc <- fam.av*counts.av$counts
+spec <- round(fam.av.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae")],0)
 
 
 p <- ncol(spec)
@@ -195,10 +196,9 @@ for (i in 1:p) {
 
 p <- ncol(spec)
 
-p.spec.lmer.crop <- matrix(NA,2,2+p)
-colnames(p.spec.lmer.crop) <- c("Env", "DF", colnames(spec)[1:p])
-
-f.spec.lmer.crop <- p.spec.lmer.crop
+fp.spec.lmer.crop <- matrix(NA,2,2+(2*p))
+colnames(fp.spec.lmer.crop) <- c("Env", "DF", rep(colnames(spec)[1:p], each=2))
+fp.spec.lmer.crop[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 spec.lmer.crop <- list()
 
@@ -215,13 +215,11 @@ for(i in 1:p) {
   name <- paste("spec",i,names(spec)[i], sep = ".")
   assign(name, model)
   spec.lmer.crop[[i]] <- assign(name, model)
-  f.spec.lmer.crop[,i+2] <- round(car::Anova(model)$"LR Chisq"[1],2)
-  p.spec.lmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)"[1],3)
-  #f.spec.lmer.crop[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  #p.spec.lmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  fp.spec.lmer.crop[2,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  fp.spec.lmer.crop[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.spec.lmer.crop[,1] <- p.spec.lmer.crop[,1]  <- row.names(Anova(model))
-f.spec.lmer.crop[,2] <- p.spec.lmer.crop[,2]  <- Anova(model)$"Df"
+fp.spec.lmer.crop[2,1]  <- row.names(Anova(model))
+fp.spec.lmer.crop[2,2]  <- Anova(model)$"Df"
 
 
 mod.names <- c(1:p)
@@ -229,18 +227,18 @@ for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(spec)[i], sep = "."))}
 names(spec.lmer.crop)[1:p] <- mod.names
 
 
-r2.spec.lmer.crop <- matrix(NA,2,p)
-row.names(r2.spec.lmer.crop) <- c("R2m", "R2c")
-colnames(r2.spec.lmer.crop) <- colnames(spec)
+spec.rsquared <- matrix(NA,2,2+2*p)
+spec.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  r2.spec.lmer.crop[,i] <- MuMIn::r.squaredGLMM(spec.lmer.crop[[i]])
+  spec.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(spec.lmer.crop[[i]]),2)
 }
+colnames(spec.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
-# save(list=c("f.spec.lmer.crop","p.spec.lmer.crop", "r2.spec.lmer.crop"), file="Results/CHi2+p_spec_LM_crop.rda")
-# write.csv(f.spec.lmer.crop, file="Results/Chi2_spec_LM_crop.csv")
-# write.csv(p.spec.lmer.crop, file="Results/p_spec_LM_crop.csv")
-# write.csv(r2.spec.lmer.crop, file="Results/p_spec_LM_crop.csv")
+fpr2.spec.lmer.crop <- rbind(fp.spec.lmer.crop, indi.rsquared, c("X", "X", rep("binomial", 2*p)))
+
+# save(list=c("f.spec.lmer.crop","p.spec.lmer.crop", "r2.spec.lmer.crop"), file="Results/ANOVATables/CHi2+p_spec_LM_crop.rda")
+# write.csv(fpr2.spec.lmer.crop, file="Results/ANOVATables/fpr2_spec_LM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

@@ -247,10 +247,9 @@ for (i in 1:p) {
 # normal LMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-p.indi.lmer <- matrix(NA,3,2+p)
-colnames(p.indi.lmer) <- c("Env", "DF", colnames(nema)[1:p])
-
-f.indi.lmer <- p.indi.lmer
+fp.indi.lmer <- matrix(NA,4,2+(2*p))
+colnames(fp.indi.lmer) <- c("Env", "DF", rep(colnames(nema)[1:p], each=2))
+fp.indi.lmer[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 indi.lmer <- list()
 
@@ -265,29 +264,29 @@ for(i in 1:p) {
   name <- paste("indi",i,names(nema)[i], sep = ".")
   assign(name, model)
   indi.lmer[[i]] <- assign(name, model)
-  f.indi.lmer[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.indi.lmer[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  fp.indi.lmer[2:4,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  fp.indi.lmer[2:4,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.indi.lmer[,1] <- p.indi.lmer[,1]  <- row.names(Anova(model))
-f.indi.lmer[,2] <- p.indi.lmer[,2]  <- Anova(model)$"Df"
+fp.indi.lmer[2:4,1]  <- row.names(Anova(model))
+fp.indi.lmer[2:4,2]  <- Anova(model)$"Df"
 
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(nema)[i], sep = "."))}
 names(indi.lmer)[1:p] <- mod.names
 
-indi.rsquared <- matrix(NA,2,p)
-row.names(indi.rsquared) <- c("R2m", "R2c")
-colnames(indi.rsquared) <- colnames(nema)
+indi.rsquared <- matrix(NA,2,2+2*p)
+indi.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  indi.rsquared[,i] <- MuMIn::r.squaredGLMM(indi.lmer[[i]])
+  indi.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(indi.lmer[[i]]),2)
 }
+colnames(indi.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
+
+fpr2.indi.lmer <- rbind(fp.indi.lmer, indi.rsquared, c("X", "X", rep("binomial", 2*p)))
 
 # save(list=c("f.indi.lmer","p.indi.lmer","indi.rsquared"), file="Results/CHi2+p+r2_Indi_LMM.rda")
-# write.csv(f.indi.lmer, file="Results/Chi2_Indi_LMM.csv")
-# write.csv(p.indi.lmer, file="Results/p_Indi_LMM.csv")
-# write.csv(indi.rsquared, file="Results/r2_Indi_LMM.csv")
+# write.csv(fpr2.indi.lmer, file="Results/fpr2_Indi_LMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

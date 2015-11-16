@@ -169,10 +169,9 @@ str(indices)
 # Poisson GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #require(glmmADMB)
-p.spec.pslmer <- matrix(NA,3,2+p)
-colnames(p.spec.pslmer) <- c("Env", "DF", colnames(spec)[1:p])
-
-f.spec.pslmer <- p.spec.pslmer
+fp.spec.pslmer <- matrix(NA,4,2+(2*p))
+colnames(fp.spec.pslmer) <- c("Env", "DF", rep(colnames(spec)[1:p], each=2))
+fp.spec.pslmer[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 spec.pslmer <- list()
 
@@ -197,22 +196,25 @@ for(i in 1:p) { mod.names[i] <- c(paste("spec",i,names(spec)[i], sep = "."))}
 names(spec.pslmer)[1:p] <- mod.names
 
 
-spec.rsquared <- matrix(NA,2,p)
-row.names(spec.rsquared) <- c("R2m", "R2c")
-colnames(spec.rsquared) <- colnames(spec)
+spec.rsquared <- matrix(NA,2,2+2*p)
+spec.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- spec[outlier[[i]],i]
-  spec.rsquared[,i] <- MuMIn::r.squaredGLMM(spec.pslmer[[i]])
+  spec.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(spec.pslmer[[i]]),2)
 }
+
+colnames(ncr.rsquared) <- c("X", "X", rep(colnames(ncr)[1:p],each=2))
+
+fpr2.ncr.biglmer <- rbind(fp.ncr.biglmer, ncr.rsquared, c("X", "X", rep("binomial", 2*p)))
+
+
 
 #dispersion_glmer(model)
 
 # save(list=c("f.spec.pslmer","p.spec.pslmer","spec.rsquared"), file="Results/CHi2+p_spec_psGLMM.rda")
-# write.csv(f.spec.pslmer, file="Results/Chi2_spec_psGLMM.csv")
-# write.csv(p.spec.pslmer, file="Results/p_spec_psGLMM.csv")
-# write.csv(spec.rsquared, file="Results/r2_spec_psGLMM.csv")
+# write.csv(fpr2.spec.pslmer, file="Results/fpr2_spec_psGLMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

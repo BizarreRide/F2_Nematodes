@@ -187,13 +187,12 @@ str(indices)
 # Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-p.fety.biglmer.crop <- matrix(NA,3,2+p)
-colnames(p.fety.biglmer.crop) <- c("Env", "DF", colnames(fety2)[1:p])
-
-f.fety.biglmer.crop <- p.fety.biglmer.crop
+fp.fety.biglmer.crop <- matrix(NA,2,2+(2*p))
+colnames(fp.fety.biglmer.crop) <- c("Env", "DF", rep(colnames(fety2)[1:p], each=2))
+fp.fety.biglmer.crop[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 fety.biglmer.crop <- list()
-i=1
+
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$scs <- fety2[outlier[[i]],i]
@@ -206,31 +205,32 @@ for(i in 1:p) {
   name <- paste("fety",i,names(fety2)[i], sep = ".")
   assign(name, model)
   fety.biglmer.crop[[i]] <- assign(name, model)
-  f.fety.biglmer.crop[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.fety.biglmer.crop[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  fp.fety.biglmer.crop[2,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  fp.fety.biglmer.crop[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.fety.biglmer.crop[,1] <- p.fety.biglmer.crop[,1]  <- row.names(Anova(model))
-f.fety.biglmer.crop[,2] <- p.fety.biglmer.crop[,2]  <- Anova(model)$"Df"
+fp.fety.biglmer.crop[2,1]  <- row.names(Anova(model))
+fp.fety.biglmer.crop[2,2]  <- Anova(model)$"Df"
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(fety2)[i], sep = "."))}
 names(fety.biglmer.crop)[1:p] <- mod.names
 
-r2.fety.biglmer.crop <- matrix(NA,2,p)
-row.names(r2.fety.biglmer.crop) <- c("R2m", "R2c")
-colnames(r2.fety.biglmer.crop) <- colnames(fety2)
+fety.rsquared <- matrix(NA,2,2+2*p)
+fety.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  r2.fety.biglmer.crop[,i] <- MuMIn::r.squaredGLMM(fety.biglmer.crop[[i]])
+  fety.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(fety.biglmer.crop[[i]]),2)
 }
+colnames(fety.rsquared) <- c("X", "X", rep(colnames(fety2)[1:p],each=2))
 
-dispersion_glmer(model)
+FpR2.frame <- rbind(fp.fety.biglmer.crop, fety.rsquared, c("X", "X", rep("binomial", 2*p)))
+
+overdisp_fun(model)
 # 
-# save(list=c("f.fety.biglmer.crop","p.fety.biglmer.crop"), file="Results/CHi2+p_Fety_bnGLMM_crop.rda")
-# write.csv(f.fety.biglmer.crop, file="Results/Chi2_Fety_bnGLMM_crop.csv")
-# write.csv(p.fety.biglmer.crop, file="Results/p_Fety_bnGLMM_crop.csv")
-# write.csv(r2.fety.biglmer.crop, file="Results/p_Fety_bnGLMM_crop.csv")
-
+# save(list=c("f.fety.biglmer.crop","p.fety.biglmer.crop", "r2.fety.biglmer.crop"), file="Results/ANOVATables/CHi2+p_Fety_bnGLMM_crop.rda")
+# write.csv(f.fety.biglmer.crop, file="Results/ANOVATables/Chi2_Fety_bnGLMM_crop.csv")
+# write.csv(p.fety.biglmer.crop, file="Results/ANOVATables/p_Fety_bnGLMM_crop.csv")
+# write.csv(r2.fety.biglmer.crop, file="Results/ANOVATables/r2_Fety_bnGLMM_crop.csv")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

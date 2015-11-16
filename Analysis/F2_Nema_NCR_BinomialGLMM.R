@@ -169,10 +169,9 @@ str(indices)
 # Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-p.ncr.biglmer <- matrix(NA,3,2+p)
-colnames(p.ncr.biglmer) <- c("Env", "DF", colnames(ncr)[1:p])
-
-f.ncr.biglmer <- p.ncr.biglmer
+fp.ncr.biglmer <- matrix(NA,4,2+(2*p))
+colnames(fp.ncr.biglmer) <- c("Env", "DF", rep(colnames(ncr)[1:p], each=2))
+fp.ncr.biglmer[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
 ncr.biglmer <- list()
 
@@ -187,31 +186,31 @@ for(i in 1:p) {
   name <- paste("ncr",i,names(ncr)[i], sep = ".")
   assign(name, model)
   ncr.biglmer[[i]] <- assign(name, model)
-  f.ncr.biglmer[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.ncr.biglmer[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  fp.ncr.biglmer[2:4,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  fp.ncr.biglmer[2:4,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
 }
-f.ncr.biglmer[,1] <- p.ncr.biglmer[,1]  <- row.names(Anova(model))
-f.ncr.biglmer[,2] <- p.ncr.biglmer[,2]  <- Anova(model)$"Df"
+fp.ncr.biglmer[2:4,1]  <- row.names(Anova(model))
+fp.ncr.biglmer[2:4,2]  <- Anova(model)$"Df"
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("ncr",i,names(ncr)[i], sep = "."))}
 names(ncr.biglmer)[1:p] <- mod.names
 
 
-ncr.rsquared <- matrix(NA,2,p)
-row.names(ncr.rsquared) <- c("R2m", "R2c")
-colnames(ncr.rsquared) <- colnames(ncr)
+ncr.rsquared <- matrix(NA,2,2+2*p)
+ncr.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  ncr.rsquared[,i] <- MuMIn::r.squaredGLMM(ncr.biglmer[[i]])
+  ncr.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ncr.biglmer[[i]]),2)
 }
+colnames(ncr.rsquared) <- c("X", "X", rep(colnames(ncr)[1:p],each=2))
+
+fpr2.ncr.biglmer <- rbind(fp.ncr.biglmer, ncr.rsquared, c("X", "X", rep("binomial", 2*p)))
 
 #dispersion_glmer(model)
 
 # save(list=c("f.ncr.biglmer","p.ncr.biglmer","ncr.rsquared"), file="Results/CHi2+p_ncr_bnGLMM.rda")
-# write.csv(f.ncr.biglmer, file="Results/Chi2_ncr_bnGLMM.csv")
-# write.csv(p.ncr.biglmer, file="Results/p_ncr_bnGLMM.csv")
-# write.csv(ncr.rsquared, file="Results/r2_ncr_bnGLMM.csv")
+# write.csv(fpr2.ncr.biglmer, file="Results/fpr2_ncr_bnGLMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
