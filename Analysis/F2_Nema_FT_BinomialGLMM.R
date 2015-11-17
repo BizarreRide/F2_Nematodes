@@ -81,10 +81,10 @@ fety$herbivores2 <- fety$herbivores + fety$Tylenchidae
 fety$fungivores2 <- fety$fungivores + fety$Tylenchidae
 
 
-fety.backup <- fety/indices$N
-fety2 <- fety[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response1 <- fety[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response2 <- fety/indices$N     # Percentage data
 
-p <- ncol(fety2)
+p <- ncol(df.response1)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -92,9 +92,9 @@ p <- ncol(fety2)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pvector <- c(1:p)
 for (i in 1:p) {
-  fk <-  fligner.test(fety2[,i] ~ indices$agsam)
+  fk <-  fligner.test(df.response1[,i] ~ indices$agsam)
   pvector[i] <- fk$p.value
-  boxplot(fety2[,i]~indices$agsam)
+  boxplot(df.response1[,i]~indices$agsam)
 }
 any(pvector<0.05) # Here is sth. wrong!!
 pvector
@@ -113,19 +113,19 @@ for(i in 1:p) {
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  indices$y <- fety2[,i]
+  indices$y <- df.response1[,i]
   plot(indices$y)
   boxplot(indices$y)
   hist(indices$y, main="")
   plot(indices$y^2)
-  title(names(fety2)[i],outer=TRUE)
+  title(names(df.response1)[i],outer=TRUE)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # Detecting Outliers ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-row.names(fety2) <- 1:nrow(fety2)
+row.names(df.response1) <- 1:nrow(df.response1)
 for(i in 1:p) {
   par(mfrow = c(2,2),
       mar = c(3,3,0,1),
@@ -136,7 +136,7 @@ for(i in 1:p) {
   car::Boxplot(indices$y ~ indices$age_class)
   car::Boxplot(indices$y ~ indices$samcam)
   car::Boxplot(indices$y ~ indices$agsam)
-  title(names(fety2)[i],outer=TRUE)
+  title(names(df.response1)[i],outer=TRUE)
 }
 
 # outliers:
@@ -179,52 +179,54 @@ str(indices)
 # Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Fp.frame <- matrix(NA,4,2+(2*p))
-colnames(Fp.frame) <- c("Env", "DF", rep(colnames(fety2)[1:p], each=2))
-Fp.frame[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
+df.Fpvalue <- matrix(NA,4,2+(2*p))
+colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response1)[1:p], each=2))
+df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
-model.list <- list()
+ls.modelss <- list()
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
-  indices2$scs <- fety2[outlier[[i]],i]
-  indices2$fail <- indices2[,"N"] - fety2[outlier[[i]],i]
+  indices2$scs <- df.response1[outlier[[i]],i]
+  indices2$fail <- indices2[,"N"] - df.response1[outlier[[i]],i]
   model <- glmer(cbind(scs,fail) ~ age_class*samcam  + (1|ID) + (1|field.ID), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
   print(overdisp_fun(model))
-  name <- paste("fety",i,names(fety2)[i], sep = ".")
+  name <- paste("fety",i,names(df.response1)[i], sep = ".")
   assign(name, model)
-  model.list[[i]] <- assign(name, model)
-  Fp.frame[2:4,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
-  Fp.frame[2:4,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  ls.modelss[[i]] <- assign(name, model)
+  df.Fpvalue[2:4,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  df.Fpvalue[2:4,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
   # afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|field.ID), family=binomial, indices2,method = "LRT")
 }
-Fp.frame[2:4,1]  <- row.names(Anova(model))
-Fp.frame[2:4,2]  <- Anova(model)$"Df"
+df.Fpvalue[2:4,1]  <- row.names(Anova(model))
+df.Fpvalue[2:4,2]  <- Anova(model)$"Df"
 
 
 mod.names <- c(1:p)
-for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(fety2)[i], sep = "."))}
-names(model.list)[1:p] <- mod.names
+for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(df.response1)[i], sep = "."))}
+names(ls.modelss)[1:p] <- mod.names
 str(indices2)
 
-fety.rsquared <- matrix(NA,2,2+2*p)
-fety.rsquared[1:2,1] <- c("R2m", "R2c")
+# R² - R squared ***********************************************************************
+
+df.rsquared <- matrix(NA,2,2+2*p)
+df.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  fety.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(model.list[[i]]),2)
+  df.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ls.modelss[[i]]),2)
 }
-colnames(fety.rsquared) <- c("X", "X", rep(colnames(fety2)[1:p],each=2))
-
-FpR2.frame <- rbind(Fp.frame, fety.rsquared, c("X", "X", rep("binomial", 2*p)))
-
-fety.biglmer = model.list
+colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 
 
-# save(FpR2.frame, file="Results/ANOVATables/CHi2+p_Fety_bnGLMM.rda")
-# write.csv(FpR2.frame, file="Results/ANOVATables/Chi2_Fety_bnGLMM.csv")
+# Summary *******************************************************************************
+
+df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
+
+# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_bnGLMM.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_bnGLMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -240,13 +242,13 @@ fety.lsm <- list()
 fety.LettersAS <- matrix(NA,8,p)
 fety.estimates <- matrix(NA,8,p)
 fety.pairs <- matrix(NA,8,(4*p))
-colnames(fety.LettersAS) <-  colnames(fety2)[1:p]
-colnames(fety.estimates) <-  colnames(fety2)[1:p]
-colnames(fety.pairs) <- rep(colnames(fety2)[1:p], each=4)
+colnames(fety.LettersAS) <-  colnames(df.response1)[1:p]
+colnames(fety.estimates) <-  colnames(df.response1)[1:p]
+colnames(fety.pairs) <- rep(colnames(df.response1)[1:p], each=4)
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(fety.biglmer[[i]],  ~ age_class*samcam, contr= "cld")
+  lsm <- lsmeans(ls.models[[i]],  ~ age_class*samcam, contr= "cld")
   x <- cld(lsm, type = "response")
   fety.LettersAS[,i] <- x$".group"
   fety.estimates[,i] <- x$"prob"
@@ -255,7 +257,7 @@ for (i in 1:p) {
   fety.pairs[,((4*i)-1)] <- x$"prob"
   fety.pairs[,((4*i)-0)] <- x$".group"
   print(cld(lsm, type = "response"))
-  name <- paste("lsm",i,names(fety2)[i], sep = ".")
+  name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   fety.lsm[[i]] <- assign(name, lsm)
   # to see the results graphically
   p1 <- plot(lsm, by = "samcam", intervals = TRUE, type = "response")
@@ -263,7 +265,7 @@ for (i in 1:p) {
   #title(names(ncr.biglmer)[i], outer=TRUE)
 }
 
-#  save(list=c("f.fety.biglmer","p.fety.biglmer","fety.rsquared","fety.LettersAS", "fety.estimates", "fety.pairs"), file="Results/CHi2+p_Fety_bnGLMM.rda")
+#  save(list=c("f.fety.biglmer","p.fety.biglmer","df.rsquared","fety.LettersAS", "fety.estimates", "fety.pairs"), file="Results/CHi2+p_Fety_bnGLMM.rda")
 #  write.csv(fety.LettersAS, file="Results/letters_Fety_bnGLMM.csv")
 #  write.csv(fety.estimates, file="Results/estim_Fety_bnGLMM.csv")
 #  write.csv(fety.pairs, file="Results/pairs_Fety_bnGLMM.csv")
@@ -274,6 +276,40 @@ for(i in 1:p){
   summary(pairs(regrid(fety.lsm[[i]])), type = "response")
 }
 
+detach("package:piecewiseSEM", unload=TRUE)
+detach("package:lmerTest", unload=TRUE)
+detach("package:afex", unload=TRUE)
+detach("package:lsmeans", unload=TRUE)
+library(lsmeans)
+
+df.posthoc <- matrix(NA,8,1+2*p)
+df.posthoc2 <- matrix(NA,4,1+2*p)
+
+for(i in 1:p) {
+  lsm <- lsmeans::lsmeans(ls.models[[i]],  ~ age_class*samcam, contr= "cld")
+  lsm2 <- cld(lsm, type = "response", sort=FALSE)
+  print(lsm2)
+  df.posthoc[,(2*p)] <- round(lsm2$estimate,3)
+  df.posthoc[,(2*i)+1] <- round(summary(lsm2)$p.value,3)
+  lsm2 <- contrast(regrid(lsm), "trt.vs.ctrl", ref=c(2:5)) # Why do the p-values differ if i use regrid() ???
+  df.posthoc[,(2*i)] <- round(summary(lsm2)$estimate,3)
+  lsm3 <- contrast(lsm, "trt.vs.ctrl", ref=c(1))
+  print(lsm3)
+  df.posthoc2[,(2*i)] <- round(summary(lsm3)$estimate,3)
+  df.posthoc2[,(2*i)+1] <- round(summary(lsm3)$p.value,3)
+  lsm3 <- contrast(regrid(lsm), "trt.vs.ctrl", ref=c(1))
+  df.posthoc2[,(2*i)] <- round(summary(lsm3)$estimate,3)
+  
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- df.response[outlier[[i]],i]
+  Boxplot(y ~ age_class, indices2)
+}
+
+df.posthoc[,1] <- paste(summary(lsm2)$"contrast")
+df.posthoc2[,1] <- paste(summary(lsm3)$"contrast")
+
+colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
+colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 #************************************************************************
 
 
@@ -281,9 +317,9 @@ fety.lsmAC <- list()
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(fety.biglmer[[i]], pairwise ~ age_class|samcam)
+  lsm <- lsmeans(ls.models[[i]], pairwise ~ age_class|samcam)
   print(summary(lsm, type = "response"))
-  name <- paste("lsm",i,names(fety2)[i], sep = ".")
+  name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   fety.lsmAC[[i]] <- assign(name, lsm)
 }
 
@@ -294,9 +330,9 @@ fety.lsmSC <- list()
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(fety.biglmer[[i]], pairwise ~ samcam|age_class)
+  lsm <- lsmeans(ls.models[[i]], pairwise ~ samcam|age_class)
   print(summary(lsm, type = "response"))
-  name <- paste("lsm",i,names(fety2)[i], sep = ".")
+  name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   fety.lsmSC[[i]] <- assign(name, lsm)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -313,13 +349,13 @@ for (i in 1:p) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
- # print(list(summary(fety.biglmer[[k]]),Anova(fety.biglmer[[k]], type="III")))
-  #corvif(fety.biglmer[[k]])
+ # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="III")))
+  #corvif(ls.models[[k]])
   
-  E1 <- resid(fety.biglmer[[k]], type="pearson")
-  E2 <- resid(fety.biglmer[[k]], type="response")
-  F1 <- fitted(fety.biglmer[[k]], type="response")
-  P1 <- predict(fety.biglmer[[k]], type="response")
+  E1 <- resid(ls.models[[k]], type="pearson")
+  E2 <- resid(ls.models[[k]], type="response")
+  F1 <- fitted(ls.models[[k]], type="response")
+  P1 <- predict(ls.models[[k]], type="response")
   
   par(mfrow=c(2,2),
       mar=c(4,4.5,1,2),
@@ -342,7 +378,7 @@ for(k in 1:p){
   lines(density(E1), col="light blue", lwd=3)
   lines(density(E1, adjust=2), lty="dotted", col="darkgreen", lwd=2) 
   
-  title(names(fety.biglmer)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
   
   # Normal QQ Plots
   qqnorm(E2)
@@ -357,16 +393,16 @@ for(k in 1:p){
   # plot samcam vs. residuals
   boxplot(E1 ~ indices$agsam[outlier[[k]]],cex.lab = 1.5, xlab="agsam", ylab="Residuals")
   
-  title(names(fety.biglmer)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
   
-  indices$y <- fety2[,k]
+  indices$y <- df.response1[,k]
   
   par(mfrow=c(1,1))
   scatter.smooth(F1,indices$y[outlier[[k]]], cex.lab = 1.5, xlab="Fitted values", ylab="Original values")
   #text(F1,indices$y,label=interaction(indices$field.ID,indices$samcam),col='red')
   abline(h = 0, v=0, lty=2)
   
-  title(names(fety.biglmer)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
   
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -375,12 +411,12 @@ for(k in 1:p){
 # Residuals against variables not in the model ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for(k in 1:p){ 
-  #corvif(fety.biglmer[[k]])
+  #corvif(ls.models[[k]])
   
-  E1 <- resid(fety.biglmer[[k]], type="pearson")
-  E2 <- resid(fety.biglmer[[k]], type="response")
-  F1 <- fitted(fety.biglmer[[k]], type="response")
-  P1 <- predict(fety.biglmer[[k]], type="response")
+  E1 <- resid(ls.models[[k]], type="pearson")
+  E2 <- resid(ls.models[[k]], type="response")
+  F1 <- fitted(ls.models[[k]], type="response")
+  P1 <- predict(ls.models[[k]], type="response")
   
   par(mfrow=c(2,2),
       mar=c(4,4.5,1,2),
@@ -403,7 +439,7 @@ for(k in 1:p){
   scatter.smooth(indices$ata1[outlier[[k]]], E1, cex.lab = 1.5, xlab="Temperature", ylab="Predicted")
   abline(h = 0, v=0, lty=2)
   
-  title(names(fety.biglmer)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -413,7 +449,7 @@ for(k in 1:p){
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 infl <- list()
 for (k in 1:p) {
-  infl[[k]] <- influence(fety.biglmer[[k]], obs=TRUE)
+  infl[[k]] <- influence(ls.models[[k]], obs=TRUE)
 }
 
 for(k in 1:p) {
@@ -434,15 +470,15 @@ PH.list <- list()
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
-  indices2$scs <- fety2[outlier[[i]],i]
-  indices2$fail <- indices2[,"N"] - fety2[outlier[[i]],i]
+  indices2$scs <- df.response1[outlier[[i]],i]
+  indices2$fail <- indices2[,"N"] - df.response1[outlier[[i]],i]
   model <- glmer(cbind(scs, fail) ~ agsam + (1|ID) + (1|field.ID), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))) # No Difference
   posthoc <- glht(model, linfct=mcp(agsam=cm1))
 #   posthoc.ci <- confint(posthoc)
 #   posthoc.sig <- which(posthoc.ci$confint[,2]>0)
 #   data.frame(names(potshoc.ci))
   posthoc <- print(summary(posthoc, test = adjusted(type = "bonferroni")))
-  nam <- paste("glht",i,names(fety2[i]), sep = ".")
+  nam <- paste("glht",i,names(df.response1[i]), sep = ".")
   PH.list[[i]] <- assign(nam, posthoc)
 }
 
@@ -469,24 +505,24 @@ test.list <- list()
 
 for(i in 1:p) {
 X <- model.matrix(~ age_class*samcam, data = testdata)
-testdata$fit <- X %*% fixef(fety.biglmer[[i]])
-testdata$SE <- sqrt(  diag(X %*%vcov(fety.biglmer[[i]]) %*% t(X))  )
+testdata$fit <- X %*% fixef(ls.models[[i]])
+testdata$SE <- sqrt(  diag(X %*%vcov(ls.models[[i]]) %*% t(X))  )
 testdata$upr=testdata$fit+1.96*testdata$SE
 testdata$lwr=testdata$fit-1.96*testdata$SE
-nam <- paste("tdata",i,names(fety2[i]), sep = ".")
+nam <- paste("tdata",i,names(df.response1[i]), sep = ".")
 test.list[[i]] <- assign(nam, testdata)
 }
 
-fety2 <- fety.backup[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
-fety2$age_class <- indices$age_class
+df.response1 <- df.response2[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response1$age_class <- indices$age_class
 
 for (i in 1:p) {
-  fety2$response <- fety2[,i]
+  df.response1$response <- df.response1[,i]
   print(ggplot(test.list[[i]], aes(x = age_class, y = exp(fit))) + 
           #geom_bar(stat="identity",position = position_dodge(1), col="454545", size=0.15, fill="grey") +
           geom_point(aes(x=as.numeric(age_class)+0.5),pch=23, size=5, bg="aquamarine2") + 
           geom_errorbar(aes(x=as.numeric(age_class)+0.5, ymin = exp(lwr), ymax = exp(upr)),position = position_dodge(1),col="black",width=0.15, size=0.15) + 
-          geom_boxplot(aes(y=response, fill=age_class), data=fety2[outlier[[i]],]) +
+          geom_boxplot(aes(y=response, fill=age_class), data=df.response1[outlier[[i]],]) +
           facet_grid(.~samcam) +
           geom_hline(xintercept = 1, size=0.15) +
           ylab("Nematodes?") +
@@ -496,7 +532,7 @@ for (i in 1:p) {
           theme(axis.text.x =element_text(angle=30, hjust=1, vjust=1)))
 }
 
-fety2 <- fety[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response1 <- fety[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
 
 #####
 

@@ -74,11 +74,11 @@ source("Data/DataProcessing/FaunalProfileIndices.R")
 biodiv <- biodiv.fun(round(fam.av*counts.av$counts,0))
 
 
-nema.backup <- cbind(FaPro[,-c(1:5)], MaturityIndices, biodiv[,-7], N=counts.av$counts)
-nema <- round(nema.backup,2)
+df.backup <- cbind(FaPro[,-c(1:5)], MaturityIndices, biodiv[,-7], N=counts.av$counts)
+df.response <- round(df.backup,2)
 
 
-p <- ncol(nema)
+p <- ncol(df.response)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -86,9 +86,9 @@ p <- ncol(nema)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pvector <- c(2:10)
 for (i in 2:10) {
-  fk <-  fligner.test(nema[,i] ~ indices$crop)
+  fk <-  fligner.test(df.response[,i] ~ indices$crop)
   pvector[i] <- fk$p.value
-  boxplot(nema[,i]~indices$crop)
+  boxplot(df.response[,i]~indices$crop)
 }
 any(pvector<0.05) # Here is sth. wrong!!
 pvector
@@ -107,28 +107,28 @@ for(i in 1:p) {
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  indices$y <- nema[,i]
+  indices$y <- df.response[,i]
   plot(indices$y)
   boxplot(indices$y)
   hist(indices$y, main="")
   plot(indices$y^2)
-  title(names(nema)[i],outer=TRUE)
+  title(names(df.response)[i],outer=TRUE)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # Detecting Outliers ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-row.names(nema) <- 1:nrow(nema)
+row.names(df.response) <- 1:nrow(df.response)
 for(i in 1:p) {
   par(mfrow = c(2,2),
       mar = c(3,3,0,1),
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  indices$y <- nema[,i]
+  indices$y <- df.response[,i]
   car::Boxplot(indices$y ~ indices$crop)
-  title(names(nema)[i],outer=TRUE)
+  title(names(df.response)[i],outer=TRUE)
 }
 
 # outliers:
@@ -187,7 +187,7 @@ for (i in 1:p) {
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  y <- nema[outlier[[i]],i] + 1
+  y <- df.response[outlier[[i]],i] + 1
   qqp(y, "norm")
   qqp(y, "lnorm")
   
@@ -201,7 +201,7 @@ for (i in 1:p) {
   #qqp(y, "gamma", shape = gamma$estimate[[1]], rate = gamma$estimate[[2]])
   
   
-  title(names(nema)[i],outer=TRUE)
+  title(names(df.response)[i],outer=TRUE)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -210,52 +210,116 @@ for (i in 1:p) {
 # normal LMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-p <- ncol(nema)
 
+# F and p-value squared *****************************************************************
 
-fp.indi.lmer.crop <- matrix(NA,2,2+(2*p))
-colnames(fp.indi.lmer.crop) <- c("Env", "DF", rep(colnames(nema)[1:p], each=2))
-fp.indi.lmer.crop[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
+p <- ncol(df.response)
 
-indi.lmer.crop <- list()
+df.Fpvalue <- matrix(NA,2,2+(2*p))
+colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response)[1:p], each=2))
+df.Fpvalue[1,] <- c("X", "X", rep(c("F", "p-value"),p))
 
+ls.models <- list()
 
 
 for(i in 1:p) {
-  indices2 <- indices[outlier[[17]],]
-  indices2$y <- nema[outlier[[17]],17]
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- df.response[outlier[[i]],i]
   model <- lm(y ~ age_class , indices2)
-  model <- lmer(y ~ age_class + (1|crop) , indices2)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
-  name <- paste("indi",i,names(nema)[i], sep = ".")
+  name <- paste("indi",i,names(df.response)[i], sep = ".")
   assign(name, model)
-  indi.lmer.crop[[i]] <- assign(name, model)
-  fp.indi.lmer.crop[2,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
-  fp.indi.lmer.crop[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  ls.models[[i]] <- assign(name, model)
+  df.Fpvalue[2,2+(i*2)] <- round(car::Anova(model, type="II")$"F value"[1],2)
+  df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>F)"[1],3)
 }
-fp.indi.lmer.crop[2,1]  <- row.names(Anova(model))
-fp.indi.lmer.crop[2,2]  <- Anova(model)$"Df"
+df.Fpvalue[2,1]  <- row.names(Anova(model))[1]
+df.Fpvalue[2,2]  <- Anova(model)$"Df"[1]
 
 
 mod.names <- c(1:p)
-for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(nema)[i], sep = "."))}
-names(indi.lmer.crop)[1:p] <- mod.names
+for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(df.response)[i], sep = "."))}
+names(ls.models)[1:p] <- mod.names
 
 
-indi.rsquared <- matrix(NA,2,2+2*p)
-indi.rsquared[1:2,1] <- c("R2m", "R2c")
+# R² - R squared ***********************************************************************
+
+df.rsquared <- matrix(NA,2,2+2*p)
+df.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  indi.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(indi.biglmer.crop[[i]]),2)
+  df.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ls.models[[i]]),2)
 }
-colnames(indi.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
+colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response)[1:p],each=2))
 
-fpr2.indi.lmer.crop <- rbind(fp.indi.lmer.crop, indi.rsquared, c("X", "X", rep("binomial", 2*p)))
 
-# save(list=c("f.indi.lmer.crop","p.indi.lmer.crop", "r2.indi.lmer.crop"), file="Results/ANOVATables/CHi2+p_indi_LM_crop.rda")
-# write.csv(fpr2.indi.lmer.crop, file="Results/ANOVATables/fpr2_indi_LM_crop.csv")
+# Summary *******************************************************************************
+
+df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
+
+# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_indi_LM_crop.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_indi_LM_crop.csv")
+
+# p-values with afex ********************************************************************
+df.FpvalueR2.1 <- df.FpvalueR2 
+
+for(i in 1:p){
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- df.response[outlier[[i]],i]
+  obj.afex <- afex::mixed(y ~ age_class , indices2,  method="LRT") 
+  df.FpvalueR2[2,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+}
+
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_indi_LM_crop.csv")
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# Post Hoc ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+detach("package:piecewiseSEM", unload=TRUE)
+detach("package:lmerTest", unload=TRUE)
+detach("package:afex", unload=TRUE)
+detach("package:lsmeans", unload=TRUE)
+library(lsmeans)
+
+df.posthoc <- matrix(NA,1,1+2*p)
+df.posthoc2 <- matrix(NA,4,1+2*p)
+
+for(i in 1:p) {
+  lsm <- lsmeans::lsmeans(ls.models[[i]], "age_class")
+  lsm2 <- contrast(lsm, "trt.vs.ctrl", ref=c(2:5))
+  print(lsm2)
+  df.posthoc[,(2*i)] <- round(summary(lsm2)$estimate,3)
+  df.posthoc[,(2*i)+1] <- round(summary(lsm2)$p.value,3)
+  lsm2 <- contrast(regrid(lsm), "trt.vs.ctrl", ref=c(2:5)) # Why do the p-values differ if i use regrid() ???
+  df.posthoc[,(2*i)] <- round(summary(lsm2)$estimate,3)
+  lsm3 <- contrast(lsm, "trt.vs.ctrl", ref=c(1))
+  print(lsm3)
+  df.posthoc2[,(2*i)] <- round(summary(lsm3)$estimate,3)
+  df.posthoc2[,(2*i)+1] <- round(summary(lsm3)$p.value,3)
+  lsm3 <- contrast(regrid(lsm), "trt.vs.ctrl", ref=c(1))
+  df.posthoc2[,(2*i)] <- round(summary(lsm3)$estimate,3)
+  
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- df.response[outlier[[i]],i]
+  Boxplot(y ~ age_class, indices2)
+}
+
+df.posthoc[,1] <- paste(summary(lsm2)$"contrast")
+df.posthoc2[,1] <- paste(summary(lsm3)$"contrast")
+
+colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
+colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
+
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_indi_LM_crop.csv")
+# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_indi_LM_crop.csv")
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -322,7 +386,7 @@ for(k in 1:p){
   
   title(names(indi.lmer.crop)[k], outer=TRUE)
   
-  indices$y <- nema[,k]
+  indices$y <- df.response[,k]
   
   par(mfrow=c(1,1))
   scatter.smooth(F1,indices$y[outlier[[k]]], cex.lab = 1.5, xlab="Fitted values", ylab="Original values")
