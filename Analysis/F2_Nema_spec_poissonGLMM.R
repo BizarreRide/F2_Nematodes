@@ -66,17 +66,17 @@ indices <- data.frame(ID = 1:nrow(env1),
 indices$nsamcam <- as.numeric(factor(indices$samcam))
 
 indices.backup <- indices
-indices <- indices.backup[!indices.backup$age_class %in% "A_Cm",]
+indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # 1. Analysis Zof FeedingTypes ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-spec <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae")],0)
-spec <- spec[!indices.backup$age_class%in% "A_Cm",]
+df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae")],0)
+df.response1 <- df.response1[!indices.backup$age_class%in% "A_Cm",]
 
-p <- ncol(spec)
+p <- ncol(df.response1)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -84,9 +84,9 @@ p <- ncol(spec)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pvector <- c(1:p)
 for (i in 1:p) {
-  fk <-  fligner.test(spec[,i] ~ env1$agsam)
+  fk <-  fligner.test(df.response1[,i] ~ env1$agsam)
   pvector[i] <- fk$p.value
-  boxplot(spec[,i]~env1$agsam)
+  boxplot(df.response1[,i]~env1$agsam)
 }
 any(pvector<0.05) # Here is sth. wrong!!
 pvector
@@ -105,51 +105,38 @@ for(i in 1:p) {
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  indices$y <- spec[,i]
+  indices$y <- df.response1[,i]
   plot(indices$y)
   boxplot(indices$y)
   hist(indices$y, main="")
   plot(indices$y^2)
-  title(names(spec)[i],outer=TRUE)
+  title(names(df.response1)[i],outer=TRUE)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # Detecting Outliers ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-row.names(spec) <- 1:nrow(spec)
+row.names(df.response1) <- 1:nrow(df.response1)
 for(i in 1:p) {
   par(mfrow = c(2,2),
       mar = c(3,3,0,1),
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  indices$y <- spec[,i]
+  indices$y <- df.response1[,i]
   car::Boxplot(indices$y ~ indices$age_class)
   car::Boxplot(indices$y ~ indices$samcam)
   car::Boxplot(indices$y ~ indices$agsam)
-  title(names(spec)[i],outer=TRUE)
+  title(names(df.response1)[i],outer=TRUE)
 }
 
-# outliers:
-# fungivores: 2
-# omnivores: 1
-
-
-# age_class:
-# bacterivores decrease
-# herbivores increase
-# fungivores have an polynomial relationship
-
-# samcam:
-# carnivores increase in the second year, only in Silphie!
-# no big differences for the others
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # drop Outliers ####
 outlier <- list(spec.Tyli <- -5,
                 spec.Aph <- -2,
-                spec.Hop <- -23,
+                spec.Hop <- -c(23,13),
                 spec.Cph <- 1:24,
                 spec.Plec <- -11,
                 spec.Telo <- -c(24,9))
@@ -165,137 +152,192 @@ indices$samcam <- indices$nsamcam
 indices$samcam <- indices$samcam2
 
 str(indices)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# Distribution plots
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+library(MASS)
+library(car)
+
+
+for (i in 1:p) {
+  par(mfrow = c(2,2),
+      mar = c(3,3,0,1),
+      mgp = c(1.5,0.5,0),
+      tck = -0.03,
+      oma = c(0,0,2,0))
+  a <- df.response1[outlier[[i]],i] + 1
+  qqp(a, "norm")
+  qqp(a, "lnorm")
+  
+  nbinom <- fitdistr(a, "negative binomial")
+  qqp(a, "nbinom", size = nbinom$estimate[[1]], mu = nbinom$estimate[[2]])
+  
+  poisson <- fitdistr(a, "Poisson")
+  qqp(a, "pois", poisson$estimate)
+  
+  gamma <- fitdistr(a, "gamma")
+  qqp(a, "gamma", shape = gamma$estimate[[1]], rate = gamma$estimate[[2]])
+  
+  
+  title(names(df.response1)[i],outer=TRUE)
+}
+rm("nbinom", "gamma", "poisson")
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 # Poisson GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #require(glmmADMB)
-fp.spec.pslmer <- matrix(NA,4,2+(2*p))
-colnames(fp.spec.pslmer) <- c("Env", "DF", rep(colnames(spec)[1:p], each=2))
-fp.spec.pslmer[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
+df.Fpvalue <- matrix(NA,4,2+(2*p))
+colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response1)[1:p], each=2))
+df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
-spec.pslmer <- list()
+ls.models <- list()
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
-  indices2$y <- spec[outlier[[i]],i]
+  indices2$y <- df.response1[outlier[[i]],i]
   model <- glmer(y ~ age_class*samcam  + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  #model <- glmer.nb(y ~ age_class*samcam  + (1|field.ID), indices2, verbose=TRUE, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # model <- glmmadmb(y ~ age_class*samcam  + (1|field.ID), family="nbinom", indices2)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
-  name <- paste("spec",i,names(spec)[i], sep = ".")
+  # Overdispersion ####
+  E1 <- resid(model, type="pearson")
+  N <- nrow(df.response1)
+  b <- length(coef(model)) +1 # +1 in case of negbin
+  Dispersion <- sum(E1^2)/(N-b)
+  print(Dispersion)
+  print(overdisp_fun(model))
+  name <- paste("spec",i,names(df.response1)[i], sep = ".")
   assign(name, model)
-  spec.pslmer[[i]] <- assign(name, model)
-  f.spec.pslmer[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.spec.pslmer[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  ls.models[[i]] <- assign(name, model)
+  df.Fpvalue[2:4,2+((i*2)-1)] <- round(car::Anova(model)$"Chisq",2)[1:3]
+  df.Fpvalue[2:4,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)",3)[1:3]
 }
-f.spec.pslmer[,1] <- p.spec.pslmer[,1]  <- row.names(Anova(model))
-f.spec.pslmer[,2] <- p.spec.pslmer[,2]  <- Anova(model)$"Df"
+df.Fpvalue[2:4,1]  <- row.names(Anova(model))
+df.Fpvalue[2:4,2]  <- Anova(model)$"Df"
+
+# Only The Plectidae-Model is not overdispersed
 
 mod.names <- c(1:p)
-for(i in 1:p) { mod.names[i] <- c(paste("spec",i,names(spec)[i], sep = "."))}
-names(spec.pslmer)[1:p] <- mod.names
+for(i in 1:p) { mod.names[i] <- c(paste("spec",i,names(df.response1)[i], sep = "."))}
+names(ls.models)[1:p] <- mod.names
 
 
-spec.rsquared <- matrix(NA,2,2+2*p)
-spec.rsquared[1:2,1] <- c("R2m", "R2c")
+df.rsquared <- matrix(NA,2,2+(2*p))
+df.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
-  indices2$y <- spec[outlier[[i]],i]
-  spec.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(spec.pslmer[[i]]),2)
+  indices2$y <- df.response1[outlier[[i]],i]
+  df.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ls.models[[i]]),2)
 }
 
-colnames(ncr.rsquared) <- c("X", "X", rep(colnames(ncr)[1:p],each=2))
+colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 
-fpr2.ncr.biglmer <- rbind(fp.ncr.biglmer, ncr.rsquared, c("X", "X", rep("binomial", 2*p)))
+df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("poisson", 2*p)))
 
+# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM.csv")
 
+# p-values with afex ********************************************************************
+df.FpvalueR2.1 <- df.FpvalueR2 
+df.FpvalueR2[2:4,] <- "NA"
 
-#dispersion_glmer(model)
+for(i in 1:p){
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- df.response1[outlier[[i]],i]
+  obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|field.ID), family=poisson, indices2,  method="LRT") 
+  df.FpvalueR2[2:4,2+((i*2)-1)] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2[2:4,2+(i*2)] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+}
+df.FpvalueR2[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
-# save(list=c("f.spec.pslmer","p.spec.pslmer","spec.rsquared"), file="Results/CHi2+p_spec_psGLMM.rda")
-# write.csv(fpr2.spec.pslmer, file="Results/fpr2_spec_psGLMM.csv")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_spec_psGLMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+model$family$getTheta(TRUE)
+lme4:::getNBdisp(ls.models[[3]])
 
 # Post Hoc data inspection with lsmeans package ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+detach("package:piecewiseSEM", unload=TRUE)
 detach("package:lmerTest", unload=TRUE)
-require(lsmeans)
-require(multcompView)
+detach("package:afex", unload=TRUE)
+detach("package:lsmeans", unload=TRUE)
+library(lsmeans)
+library(multcompView)
 
-spec.lsm <- list()
-spec.LettersAS <- matrix(NA,8,p)
-spec.estimates <- matrix(NA,8,p)
-spec.pairs <- matrix(NA,8,(4*p))
-colnames(spec.LettersAS) <-  colnames(spec)[1:p]
-colnames(spec.estimates) <-  colnames(spec)[1:p]
-colnames(spec.pairs) <- rep(colnames(spec)[1:p], each=4)
+ls.lsm<- list()
+
+df.posthoc <- matrix(NA,8,2+(2*p))
 
 for (i in 1:p) {
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- df.response1[outlier[[i]],i]
   # get the results on a back transformed scale:
-  lsm <- lsmeans(spec.pslmer[[i]],  ~ age_class*samcam, contr= "cld")
-  x <- cld(lsm, type = "response")
-  spec.LettersAS[,i] <- x$".group"
-  spec.estimates[,i] <- x$"rate"
-  spec.pairs[,((4*i)-3)] <- x$"age_class"
-  spec.pairs[,((4*i)-2)] <- x$"samcam"
-  spec.pairs[,((4*i)-1)] <- x$"rate"
-  spec.pairs[,((4*i)-0)] <- x$".group"
-  print(cld(lsm, type = "response"))
-  name <- paste("lsm",i,names(spec)[i], sep = ".")
-  spec.lsm[[i]] <- assign(name, lsm)
+  lsm <- lsmeans::lsmeans(ls.models[[i]],  ~ age_class*samcam, data=indices2, contr= "cld")
+  x <- cld(lsm, type = "response", sort=FALSE)
+  df.posthoc[,2+((2*i)-1)] <- x$"rate" # rate in poisson models
+  df.posthoc[,2+((2*i)-0)] <- x$".group"
+  print(x)
+  name <- paste("lsm",i,names(df.response1)[i], sep = ".")
+  ls.lsm[[i]] <- assign(name, lsm)
   # to see the results graphically
   p1 <- plot(lsm, by = "samcam", intervals = TRUE, type = "response")
   print(p1)
-  #title(names(ncr.pslmer)[i], outer=TRUE)
+  #title(names(ncr.biglmer)[i], outer=TRUE)
 }
 
-#  save(list=c("f.spec.pslmer","p.spec.pslmer","spec.rsquared","spec.LettersAS", "spec.estimates", "spec.pairs"), file="Results/CHi2+p_spec_psGLMM.rda")
-#  write.csv(spec.LettersAS, file="Results/letters_spec_psGLMM.csv")
-#  write.csv(spec.estimates, file="Results/estim_spec_psGLMM.csv")
-#  write.csv(spec.pairs, file="Results/pairs_spec_psGLMM.csv")
 
 for(i in 1:p){
-  lsmip(spec.lsm[[i]], age_class ~ samcam, type = "response")
-  summary(pairs(spec.lsm[[i]]), type = "response")
-  summary(pairs(regrid(spec.lsm[[i]])), type = "response")
+  lsmip(ls.lsm[[i]], age_class ~ samcam, type = "response")
+  summary(pairs(ls.lsm[[i]]), type = "response")
+  summary(pairs(regrid(ls.lsm[[i]])), type = "response")
+}
+
+df.posthoc[,1] <- paste(x$"age_class")
+df.posthoc[,2] <- paste(x$"samcam")
+
+colnames(df.posthoc) <- c("Factor1", "Factor1", rep(colnames(df.response1),each=2))
+df.posthoc <- rbind(c("age_class", "samcam", rep(c("rate", "group"), p)), df.posthoc)
+
+# save(list=c("ls.models","ls.lsm", "df.FpvalueR2", "df.posthoc"), file="Results/ANOVATables/Spec_psGLMM.rda")
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Spec_psGLMM.csv")
+#************************************************************************
+
+
+ls.lsmAC <- list()
+
+for (i in 1:p) {
+  # get the results on a back transformed scale:
+  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam)
+  x <- contrast(lsm, "pairwise" , type = "response")
+  print(x)
+  name <- paste("lsm",i,names(df.response1)[i], sep = ".")
+  ls.lsmAC[[i]] <- assign(name, lsm)
 }
 
 #************************************************************************
 
 
-spec.lsmAC <- list()
+ls.lsmSC <- list()
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(spec.pslmer[[i]], pairwise ~ age_class|samcam)
-  print(summary(lsm, type = "response"))
-  name <- paste("lsm",i,names(spec)[i], sep = ".")
-  spec.lsmAC[[i]] <- assign(name, lsm)
+  lsm <- lsmeans(ls.models[[i]], pairwise ~ samcam|age_class)
+  x <- contrast(lsm, "pairwise" , type = "response")
+  print(x)
+  name <- paste("lsm",i,names(df.response1)[i], sep = ".")
+  ls.lsmSC[[i]] <- assign(name, lsm)
 }
-
-#************************************************************************
-
-
-spec.lsmSC <- list()
-
-for (i in 1:p) {
-  # get the results on a back transformed scale:
-  lsm <- lsmeans(spec.pslmer[[i]], pairwise ~ samcam|age_class)
-  print(summary(lsm, type = "response"))
-  name <- paste("lsm",i,names(spec)[i], sep = ".")
-  spec.lsmSC[[i]] <- assign(name, lsm)
-}
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-# Overdispersion ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -303,13 +345,13 @@ for (i in 1:p) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
- # print(list(summary(spec.pslmer[[k]]),Anova(spec.pslmer[[k]], type="III")))
-  #corvif(spec.pslmer[[k]])
+  # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="III")))
+  #corvif(ls.models[[k]])
   
-  E1 <- resid(spec.pslmer[[k]], type="pearson")
-  E2 <- resid(spec.pslmer[[k]], type="response")
-  F1 <- fitted(spec.pslmer[[k]], type="response")
-  P1 <- predict(spec.pslmer[[k]], type="response")
+  E1 <- resid(ls.models[[k]], type="pearson")
+  E2 <- resid(ls.models[[k]], type="response")
+  F1 <- fitted(ls.models[[k]], type="response")
+  P1 <- predict(ls.models[[k]], type="response")
   
   par(mfrow=c(2,2),
       mar=c(4,4.5,1,2),
@@ -332,7 +374,7 @@ for(k in 1:p){
   lines(density(E1), col="light blue", lwd=3)
   lines(density(E1, adjust=2), lty="dotted", col="darkgreen", lwd=2) 
   
-  title(names(spec.pslmer)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
   
   # Normal QQ Plots
   qqnorm(E2)
@@ -347,7 +389,7 @@ for(k in 1:p){
   # plot samcam vs. residuals
   boxplot(E1 ~ indices$agsam[outlier[[k]]],cex.lab = 1.5, xlab="agsam", ylab="Residuals")
   
-  title(names(spec.pslmer)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
   
   indices$y <- spec[,k]
   
@@ -356,7 +398,7 @@ for(k in 1:p){
   #text(F1,indices$y,label=interaction(indices$field.ID,indices$samcam),col='red')
   abline(h = 0, v=0, lty=2)
   
-  title(names(spec.pslmer)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
   
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -365,12 +407,12 @@ for(k in 1:p){
 # Residuals against variables not in the model ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for(k in 1:p){ 
-  #corvif(spec.pslmer[[k]])
+  #corvif(ls.models[[k]])
   
-  E1 <- resid(spec.pslmer[[k]], type="pearson")
-  E2 <- resid(spec.pslmer[[k]], type="response")
-  F1 <- fitted(spec.pslmer[[k]], type="response")
-  P1 <- predict(spec.pslmer[[k]], type="response")
+  E1 <- resid(ls.models[[k]], type="pearson")
+  E2 <- resid(ls.models[[k]], type="response")
+  F1 <- fitted(ls.models[[k]], type="response")
+  P1 <- predict(ls.models[[k]], type="response")
   
   par(mfrow=c(2,2),
       mar=c(4,4.5,1,2),
@@ -393,7 +435,7 @@ for(k in 1:p){
   scatter.smooth(indices$ata1[outlier[[k]]], E1, cex.lab = 1.5, xlab="Temperature", ylab="Predicted")
   abline(h = 0, v=0, lty=2)
   
-  title(names(spec.pslmer)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -403,7 +445,7 @@ for(k in 1:p){
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 infl <- list()
 for (k in 1:p) {
-  infl[[k]] <- influence(spec.pslmer[[k]], obs=TRUE)
+  infl[[k]] <- influence(ls.models[[k]], obs=TRUE)
 }
 
 for(k in 1:p) {
@@ -427,9 +469,9 @@ for(i in 1:p) {
   indices2$fail <- indices2[,"N"] - spec[outlier[[i]],i]
   model <- glmer(cbind(scs, fail) ~ agsam + (1|ID) + (1|field.ID), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))) # No Difference
   posthoc <- glht(model, linfct=mcp(agsam=cm1))
-#   posthoc.ci <- confint(posthoc)
-#   posthoc.sig <- which(posthoc.ci$confint[,2]>0)
-#   data.frame(names(potshoc.ci))
+  #   posthoc.ci <- confint(posthoc)
+  #   posthoc.sig <- which(posthoc.ci$confint[,2]>0)
+  #   data.frame(names(potshoc.ci))
   posthoc <- print(summary(posthoc, test = adjusted(type = "bonferroni")))
   nam <- paste("glht",i,names(spec[i]), sep = ".")
   PH.list[[i]] <- assign(nam, posthoc)
@@ -457,13 +499,13 @@ testdata = expand.grid(age_class=unique(indices$age_class),
 test.list <- list()
 
 for(i in 1:p) {
-X <- model.matrix(~ age_class*samcam, data = testdata)
-testdata$fit <- X %*% fixef(spec.pslmer[[i]])
-testdata$SE <- sqrt(  diag(X %*%vcov(spec.pslmer[[i]]) %*% t(X))  )
-testdata$upr=testdata$fit+1.96*testdata$SE
-testdata$lwr=testdata$fit-1.96*testdata$SE
-nam <- paste("tdata",i,names(spec[i]), sep = ".")
-test.list[[i]] <- assign(nam, testdata)
+  X <- model.matrix(~ age_class*samcam, data = testdata)
+  testdata$fit <- X %*% fixef(ls.models[[i]])
+  testdata$SE <- sqrt(  diag(X %*%vcov(ls.models[[i]]) %*% t(X))  )
+  testdata$upr=testdata$fit+1.96*testdata$SE
+  testdata$lwr=testdata$fit-1.96*testdata$SE
+  nam <- paste("tdata",i,names(spec[i]), sep = ".")
+  test.list[[i]] <- assign(nam, testdata)
 }
 
 spec <- spec.backup[!indices.backup$age_class %in% "A_Cm",-c(1:4)]

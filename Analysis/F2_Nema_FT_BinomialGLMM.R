@@ -65,8 +65,8 @@ indices <- data.frame(ID = 1:nrow(env1),
 
 indices$nsamcam <- as.numeric(factor(indices$samcam))
 
-indices.backup <- droplevels(indices)
-indices <- indices.backup[!indices.backup$age_class %in% "A_Cm",]
+indices.backup <- indices
+indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -183,7 +183,7 @@ df.Fpvalue <- matrix(NA,4,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response1)[1:p], each=2))
 df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
-ls.modelss <- list()
+ls.models <- list()
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
@@ -196,7 +196,7 @@ for(i in 1:p) {
   print(overdisp_fun(model))
   name <- paste("fety",i,names(df.response1)[i], sep = ".")
   assign(name, model)
-  ls.modelss[[i]] <- assign(name, model)
+  ls.models[[i]] <- assign(name, model)
   df.Fpvalue[2:4,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
   df.Fpvalue[2:4,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
   # afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|field.ID), family=binomial, indices2,method = "LRT")
@@ -207,7 +207,7 @@ df.Fpvalue[2:4,2]  <- Anova(model)$"Df"
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(df.response1)[i], sep = "."))}
-names(ls.modelss)[1:p] <- mod.names
+names(ls.models)[1:p] <- mod.names
 str(indices2)
 
 # R² - R squared ***********************************************************************
@@ -216,7 +216,7 @@ df.rsquared <- matrix(NA,2,2+2*p)
 df.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  df.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ls.modelss[[i]]),2)
+  df.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ls.models[[i]]),2)
 }
 colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 
@@ -225,115 +225,99 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
 
-# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_bnGLMM.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_bnGLMM.csv")
+# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_Fety_bnGLMM.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Fety_bnGLMM.csv")
+
+
+# p-values with afex ********************************************************************
+df.FpvalueR2.1 <- df.FpvalueR2 
+
+for(i in 1:p){
+  indices2 <- indices[outlier[[i]],]
+  indices2$scs <- df.response1[outlier[[i]],i]
+  indices2$fail <- indices2[,"N"] - df.response1[outlier[[i]],i]
+  indices2$pct <- df.response1[outlier[[i]],i]/indices2[,"N"]
+  obj.afex <- afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|ID) + (1|field.ID), family=binomial, indices2,  method="LRT") 
+  df.FpvalueR2[2:4,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+}
+
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM_crop.csv")
+
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # Post Hoc data inspection with lsmeans package ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+detach("package:piecewiseSEM", unload=TRUE)
 detach("package:lmerTest", unload=TRUE)
-require(lsmeans)
-require(multcompView)
+detach("package:afex", unload=TRUE)
+detach("package:lsmeans", unload=TRUE)
+library(lsmeans)
+library(multcompView)
 
-fety.lsm <- list()
-fety.LettersAS <- matrix(NA,8,p)
-fety.estimates <- matrix(NA,8,p)
-fety.pairs <- matrix(NA,8,(4*p))
-colnames(fety.LettersAS) <-  colnames(df.response1)[1:p]
-colnames(fety.estimates) <-  colnames(df.response1)[1:p]
-colnames(fety.pairs) <- rep(colnames(df.response1)[1:p], each=4)
+ls.lsm<- list()
+
+df.posthoc <- matrix(NA,8,2+(2*p))
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(ls.models[[i]],  ~ age_class*samcam, contr= "cld")
-  x <- cld(lsm, type = "response")
-  fety.LettersAS[,i] <- x$".group"
-  fety.estimates[,i] <- x$"prob"
-  fety.pairs[,((4*i)-3)] <- x$"age_class"
-  fety.pairs[,((4*i)-2)] <- x$"samcam"
-  fety.pairs[,((4*i)-1)] <- x$"prob"
-  fety.pairs[,((4*i)-0)] <- x$".group"
-  print(cld(lsm, type = "response"))
+  lsm <- lsmeans::lsmeans(ls.models[[i]],  ~ age_class*samcam, contr= "cld")
+  x <- cld(lsm, type = "response", sort=FALSE)
+  df.posthoc[,2+((2*i)-1)] <- x$"prob"
+  df.posthoc[,2+((2*i)-0)] <- x$".group"
+  print(x)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
-  fety.lsm[[i]] <- assign(name, lsm)
+  ls.lsm[[i]] <- assign(name, lsm)
   # to see the results graphically
   p1 <- plot(lsm, by = "samcam", intervals = TRUE, type = "response")
   print(p1)
   #title(names(ncr.biglmer)[i], outer=TRUE)
 }
 
-#  save(list=c("f.fety.biglmer","p.fety.biglmer","df.rsquared","fety.LettersAS", "fety.estimates", "fety.pairs"), file="Results/CHi2+p_Fety_bnGLMM.rda")
-#  write.csv(fety.LettersAS, file="Results/letters_Fety_bnGLMM.csv")
-#  write.csv(fety.estimates, file="Results/estim_Fety_bnGLMM.csv")
-#  write.csv(fety.pairs, file="Results/pairs_Fety_bnGLMM.csv")
 
 for(i in 1:p){
-  lsmip(fety.lsm[[i]], age_class ~ samcam, type = "response")
-  summary(pairs(fety.lsm[[i]]), type = "response")
-  summary(pairs(regrid(fety.lsm[[i]])), type = "response")
+  lsmip(ls.lsm[[i]], age_class ~ samcam, type = "response")
+  summary(pairs(ls.lsm[[i]]), type = "response")
+  summary(pairs(regrid(ls.lsm[[i]])), type = "response")
 }
 
-detach("package:piecewiseSEM", unload=TRUE)
-detach("package:lmerTest", unload=TRUE)
-detach("package:afex", unload=TRUE)
-detach("package:lsmeans", unload=TRUE)
-library(lsmeans)
+df.posthoc[,1] <- paste(x$"age_class")
+df.posthoc[,2] <- paste(x$"samcam")
 
-df.posthoc <- matrix(NA,8,1+2*p)
-df.posthoc2 <- matrix(NA,4,1+2*p)
+colnames(df.posthoc) <- c("Factor1", "Factor1", rep(colnames(df.response1),each=2))
+df.posthoc <- rbind(c("age_class", "samcam", rep(c("prob", "group"), p)), df.posthoc)
 
-for(i in 1:p) {
-  lsm <- lsmeans::lsmeans(ls.models[[i]],  ~ age_class*samcam, contr= "cld")
-  lsm2 <- cld(lsm, type = "response", sort=FALSE)
-  print(lsm2)
-  df.posthoc[,(2*p)] <- round(lsm2$estimate,3)
-  df.posthoc[,(2*i)+1] <- round(summary(lsm2)$p.value,3)
-  lsm2 <- contrast(regrid(lsm), "trt.vs.ctrl", ref=c(2:5)) # Why do the p-values differ if i use regrid() ???
-  df.posthoc[,(2*i)] <- round(summary(lsm2)$estimate,3)
-  lsm3 <- contrast(lsm, "trt.vs.ctrl", ref=c(1))
-  print(lsm3)
-  df.posthoc2[,(2*i)] <- round(summary(lsm3)$estimate,3)
-  df.posthoc2[,(2*i)+1] <- round(summary(lsm3)$p.value,3)
-  lsm3 <- contrast(regrid(lsm), "trt.vs.ctrl", ref=c(1))
-  df.posthoc2[,(2*i)] <- round(summary(lsm3)$estimate,3)
-  
-  indices2 <- indices[outlier[[i]],]
-  indices2$y <- df.response[outlier[[i]],i]
-  Boxplot(y ~ age_class, indices2)
-}
-
-df.posthoc[,1] <- paste(summary(lsm2)$"contrast")
-df.posthoc2[,1] <- paste(summary(lsm3)$"contrast")
-
-colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
-colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
+#  save(list=c("ls.models","ls.lsm", "df.FpvalueR2", "df.posthoc"), file="Results/ANOVATables/Fety_bnGLMM.rda")
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Fety_bnGLMM.csv")
 #************************************************************************
 
 
-fety.lsmAC <- list()
+ls.lsmAC <- list()
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(ls.models[[i]], pairwise ~ age_class|samcam)
-  print(summary(lsm, type = "response"))
+  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam)
+  x <- contrast(lsm, "pairwise" , type = "response")
+  print(x)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
-  fety.lsmAC[[i]] <- assign(name, lsm)
+  ls.lsmAC[[i]] <- assign(name, lsm)
 }
 
 #************************************************************************
 
 
-fety.lsmSC <- list()
+ls.lsmSC <- list()
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
   lsm <- lsmeans(ls.models[[i]], pairwise ~ samcam|age_class)
-  print(summary(lsm, type = "response"))
+  x <- contrast(lsm, "pairwise" , type = "response")
+  print(x)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
-  fety.lsmSC[[i]] <- assign(name, lsm)
+  ls.lsmSC[[i]] <- assign(name, lsm)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
