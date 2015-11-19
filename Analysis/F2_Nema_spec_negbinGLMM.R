@@ -202,6 +202,7 @@ for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
   #model <- glmer(y ~ age_class*samcam  + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # model <- lmer(y ~ age_class*samcam  + (1|field.ID), indices2)
   model <- glmer.nb(y ~ age_class*samcam  + (1|field.ID), indices2, verbose=TRUE, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   # model <- glmmadmb(y ~ age_class*samcam  + (1|field.ID), family="nbinom", indices2)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
@@ -236,7 +237,7 @@ df.rsquared[1:2,1] <- c("R2m", "R2c")
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
-  df.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ls.models[[i]]),2)
+  df.rsquared[,2+2*i] <- round(piecewiseSEM::sem.model.fits(ls.models[[i]]),2)
 }
 
 colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
@@ -285,9 +286,11 @@ for (i in 1:p) {
   # get the results on a back transformed scale:
   lsm <- lsmeans::lsmeans(ls.models[[i]],  ~ age_class*samcam, data=indices2, contr= "cld")
   x <- cld(lsm, type = "response", sort=FALSE)
+  x2 <- cld(lsm, sort=FALSE)
   df.posthoc[,2+((2*i)-1)] <- x$"response" # rate in poisson models
   df.posthoc[,2+((2*i)-0)] <- x$".group"
   print(x)
+  print(x2)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   ls.lsm[[i]] <- assign(name, lsm)
   # to see the results graphically
@@ -341,7 +344,7 @@ for (i in 1:p) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-### NegBin GLMM - Model Validation ####
+### NegBi nGLMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
@@ -391,7 +394,7 @@ for(k in 1:p){
   
   title(names(ls.models)[k], outer=TRUE)
   
-  indices$y <- spec[,k]
+  indices$y <- df.response1[,k]
   
   par(mfrow=c(1,1))
   scatter.smooth(F1,indices$y[outlier[[k]]], cex.lab = 1.5, xlab="Fitted values", ylab="Original values")
@@ -465,15 +468,15 @@ PH.list <- list()
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
-  indices2$scs <- spec[outlier[[i]],i]
-  indices2$fail <- indices2[,"N"] - spec[outlier[[i]],i]
+  indices2$scs <- df.response1[outlier[[i]],i]
+  indices2$fail <- indices2[,"N"] - df.response1[outlier[[i]],i]
   model <- glmer(cbind(scs, fail) ~ agsam + (1|ID) + (1|field.ID), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))) # No Difference
   posthoc <- glht(model, linfct=mcp(agsam=cm1))
 #   posthoc.ci <- confint(posthoc)
 #   posthoc.sig <- which(posthoc.ci$confint[,2]>0)
 #   data.frame(names(potshoc.ci))
   posthoc <- print(summary(posthoc, test = adjusted(type = "bonferroni")))
-  nam <- paste("glht",i,names(spec[i]), sep = ".")
+  nam <- paste("glht",i,names(df.response1[i]), sep = ".")
   PH.list[[i]] <- assign(nam, posthoc)
 }
 
@@ -504,20 +507,20 @@ testdata$fit <- X %*% fixef(ls.models[[i]])
 testdata$SE <- sqrt(  diag(X %*%vcov(ls.models[[i]]) %*% t(X))  )
 testdata$upr=testdata$fit+1.96*testdata$SE
 testdata$lwr=testdata$fit-1.96*testdata$SE
-nam <- paste("tdata",i,names(spec[i]), sep = ".")
+nam <- paste("tdata",i,names(df.response1[i]), sep = ".")
 test.list[[i]] <- assign(nam, testdata)
 }
 
-spec <- spec.backup[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
-spec$age_class <- indices$age_class
+df.response1 <- spec.backup[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response1$age_class <- indices$age_class
 
 for (i in 1:p) {
-  spec$response <- spec[,i]
+  df.response1$response <- df.response1[,i]
   print(ggplot(test.list[[i]], aes(x = age_class, y = exp(fit))) + 
           #geom_bar(stat="identity",position = position_dodge(1), col="454545", size=0.15, fill="grey") +
           geom_point(aes(x=as.numeric(age_class)+0.5),pch=23, size=5, bg="aquamarine2") + 
           geom_errorbar(aes(x=as.numeric(age_class)+0.5, ymin = exp(lwr), ymax = exp(upr)),position = position_dodge(1),col="black",width=0.15, size=0.15) + 
-          geom_boxplot(aes(y=response, fill=age_class), data=spec[outlier[[i]],]) +
+          geom_boxplot(aes(y=response, fill=age_class), data=df.response1[outlier[[i]],]) +
           facet_grid(.~samcam) +
           geom_hline(xintercept = 1, size=0.15) +
           ylab("Nematodes?") +
@@ -527,7 +530,7 @@ for (i in 1:p) {
           theme(axis.text.x =element_text(angle=30, hjust=1, vjust=1)))
 }
 
-spec <- spec[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response1 <- df.response1[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
 
 #####
 

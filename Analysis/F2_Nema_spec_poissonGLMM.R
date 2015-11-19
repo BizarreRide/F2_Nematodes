@@ -263,8 +263,6 @@ df.FpvalueR2[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-model$family$getTheta(TRUE)
-lme4:::getNBdisp(ls.models[[3]])
 
 # Post Hoc data inspection with lsmeans package ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -391,7 +389,7 @@ for(k in 1:p){
   
   title(names(ls.models)[k], outer=TRUE)
   
-  indices$y <- spec[,k]
+  indices$y <- df.response1[,k]
   
   par(mfrow=c(1,1))
   scatter.smooth(F1,indices$y[outlier[[k]]], cex.lab = 1.5, xlab="Fitted values", ylab="Original values")
@@ -465,15 +463,15 @@ PH.list <- list()
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
-  indices2$scs <- spec[outlier[[i]],i]
-  indices2$fail <- indices2[,"N"] - spec[outlier[[i]],i]
+  indices2$scs <- df.response1[outlier[[i]],i]
+  indices2$fail <- indices2[,"N"] - df.response1[outlier[[i]],i]
   model <- glmer(cbind(scs, fail) ~ agsam + (1|ID) + (1|field.ID), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))) # No Difference
   posthoc <- glht(model, linfct=mcp(agsam=cm1))
   #   posthoc.ci <- confint(posthoc)
   #   posthoc.sig <- which(posthoc.ci$confint[,2]>0)
   #   data.frame(names(potshoc.ci))
   posthoc <- print(summary(posthoc, test = adjusted(type = "bonferroni")))
-  nam <- paste("glht",i,names(spec[i]), sep = ".")
+  nam <- paste("glht",i,names(df.response1[i]), sep = ".")
   PH.list[[i]] <- assign(nam, posthoc)
 }
 
@@ -504,20 +502,20 @@ for(i in 1:p) {
   testdata$SE <- sqrt(  diag(X %*%vcov(ls.models[[i]]) %*% t(X))  )
   testdata$upr=testdata$fit+1.96*testdata$SE
   testdata$lwr=testdata$fit-1.96*testdata$SE
-  nam <- paste("tdata",i,names(spec[i]), sep = ".")
+  nam <- paste("tdata",i,names(df.response1[i]), sep = ".")
   test.list[[i]] <- assign(nam, testdata)
 }
 
-spec <- spec.backup[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
-spec$age_class <- indices$age_class
+df.response1 <- spec.backup[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response1$age_class <- indices$age_class
 
 for (i in 1:p) {
-  spec$response <- spec[,i]
+  df.response1$response <- df.response1[,i]
   print(ggplot(test.list[[i]], aes(x = age_class, y = exp(fit))) + 
           #geom_bar(stat="identity",position = position_dodge(1), col="454545", size=0.15, fill="grey") +
           geom_point(aes(x=as.numeric(age_class)+0.5),pch=23, size=5, bg="aquamarine2") + 
           geom_errorbar(aes(x=as.numeric(age_class)+0.5, ymin = exp(lwr), ymax = exp(upr)),position = position_dodge(1),col="black",width=0.15, size=0.15) + 
-          geom_boxplot(aes(y=response, fill=age_class), data=spec[outlier[[i]],]) +
+          geom_boxplot(aes(y=response, fill=age_class), data=df.response1[outlier[[i]],]) +
           facet_grid(.~samcam) +
           geom_hline(xintercept = 1, size=0.15) +
           ylab("Nematodes?") +
@@ -527,7 +525,7 @@ for (i in 1:p) {
           theme(axis.text.x =element_text(angle=30, hjust=1, vjust=1)))
 }
 
-spec <- spec[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response1 <- df.response1[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
 
 #####
 

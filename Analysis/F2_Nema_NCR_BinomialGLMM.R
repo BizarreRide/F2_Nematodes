@@ -214,18 +214,20 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p))
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
+df.Fpvalue2.1[2:4,] <- "NA"
+
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$scs <- df.response[outlier[[i]],i]
   indices2$fail <- rowSums(df.response[outlier[[i]],]) - df.response[outlier[[i]],i]
   obj.afex <- afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|ID) + (1|field.ID), family=binomial, indices2,  method="LRT") 
-  df.FpvalueR2[2:4,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2.1[2:4,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 df.FpvalueR2[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_ncr_bnGLMM.csv")
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_ncr_bnGLMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -303,12 +305,6 @@ for (i in 1:p) {
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-# Overdispersion ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 ### binomial GLMM - Model Validation ####

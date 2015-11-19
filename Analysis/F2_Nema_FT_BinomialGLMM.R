@@ -242,7 +242,7 @@ for(i in 1:p){
   df.FpvalueR2[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM_crop.csv")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM.csv")
 
 
 
@@ -323,13 +323,7 @@ for (i in 1:p) {
 
 
 
-# Overdispersion ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-### binomial GLMM - Model Validation ####
+### binLomial GLMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
