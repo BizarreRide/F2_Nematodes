@@ -1,6 +1,6 @@
 "","Env","DF","Tylenchidae","Tylenchidae","Aphelenchidae","Aphelenchidae","Hoplolaimidae","Hoplolaimidae","Cephalobidae","Cephalobidae","Plectidae","Plectidae","Telotylenchidae","Telotylenchidae"
 "1","X","X","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value"
 "2","age_class","4","16.51","0.002","57.18","0","20.91","0","10.14","0.038","12.36","0.015","16.19","0.003"
-"3","R2m",NA,NA,"0.48",NA,"0.716",NA,"0.521",NA,"0.349",NA,"0.372",NA,"0.458"
-"4","R2c",NA,NA,"0.48",NA,"0.716",NA,"0.521",NA,"0.349",NA,"0.372",NA,"0.458"
-"5","X","X","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial"
+"3","R2m",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"4","R2c",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"5","X","X","nbinom","nbinom","nbinom","nbinom","nbinom","nbinom","nbinom","nbinom","nbinom","nbinom","nbinom","nbinom"

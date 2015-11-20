@@ -259,21 +259,22 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
 
-# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_indi_LM_crop.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_indi_LM_crop.csv")
+save("df.FpvalueR2", file="Results/ANOVATables/FpR2_indi_LM_crop.rda")
+write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_indi_LM_crop.csv")
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
+df.FpvalueR2.1[2,] <- "NA"
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response[outlier[[i]],i]
   obj.afex <- afex::mixed(y ~ age_class , indices2,  method="LRT") 
-  df.FpvalueR2[2,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2.1[2,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_indi_LM_crop.csv")
+write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_indi_LM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -315,8 +316,8 @@ df.posthoc2[,1] <- paste(summary(lsm3)$"contrast")
 colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
 colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
-# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_indi_LM_crop.csv")
-# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_indi_LM_crop.csv")
+write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_indi_LM_crop.csv")
+write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_indi_LM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

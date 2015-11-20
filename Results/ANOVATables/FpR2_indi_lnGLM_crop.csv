@@ -1,6 +1,6 @@
 "","Env","DF","BI","BI","CI","CI","PPI","PPI","PPI.1","PPI.1","MI","MI","MI25","MI25","N","N"
 "1","X","X","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value","LR-CHI2","p-value"
 "2","age_class","4","1.56","0.816","2.2","0.698","6.98","0.137","5.35","0.253","3.8","0.433","1.85","0.764","24.17","0"
-"3","R2m",NA,NA,"0.107",NA,"0.145",NA,"0.368",NA,"0.308",NA,"0.226",NA,"0.124",NA,"0.668"
-"4","R2c",NA,NA,"0.107",NA,"0.145",NA,"0.368",NA,"0.308",NA,"0.226",NA,"0.124",NA,"0.668"
-"5","X","X","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial"
+"3","R2m",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"4","R2c",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"5","X","X","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal","log-normal"

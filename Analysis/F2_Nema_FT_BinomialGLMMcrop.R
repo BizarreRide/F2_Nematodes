@@ -239,17 +239,19 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p))
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
+df.FpvalueR2.1[2,] <- "NA" 
+
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$scs <- df.response1[outlier[[i]],i]
   indices2$fail <- indices2[,"N"] - df.response1[outlier[[i]],i]
   obj.afex <- afex::mixed(cbind(scs,fail) ~ age_class + (1|ID), family=binomial, indices2, method="LRT") 
-  df.FpvalueR2[2,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2.1[2,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM_crop.csv")
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

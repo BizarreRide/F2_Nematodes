@@ -290,17 +290,18 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("normal", 2*p)))
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
+df.FpvalueR2.1[2,] <- "NA"
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
   obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|field.ID),  indices2,  method="KR") 
-  df.FpvalueR2[2:4,2+(i*2)-1] <- round(obj.afex[[1]]$"F",2)
-  df.FpvalueR2[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>F)",3)
+  df.FpvalueR2.1[2:4,2+(i*2)-1] <- round(obj.afex[[1]]$"F",2)
+  df.FpvalueR2.1[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>F)",3)
 }
-df.FpvalueR2[1,] <- c("X", "X", rep(c("KR-F", "p-value"),p))
+df.FpvalueR2.1[1,] <- c("X", "X", rep(c("KR-F", "p-value"),p))
 
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_Indi_LMM.csv")
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Indi_LMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

@@ -212,17 +212,18 @@ write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_ncr_bnGLM_crop.csv")
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
+df.FpvalueR2.1[2,] <- "N"
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$scs <- df.response[outlier[[i]],i]
   indices2$fail <- rowSums(df.response[outlier[[i]],]) - df.response[outlier[[i]],i]
   obj.afex <- afex::mixed(cbind(scs,fail) ~ age_class + (1|ID), family=binomial(link="logit"), indices2, method="LRT") 
-  df.FpvalueR2[2,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2.1[2,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_ncr_bnGLM_crop.csv")
+write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_ncr_bnGLM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
