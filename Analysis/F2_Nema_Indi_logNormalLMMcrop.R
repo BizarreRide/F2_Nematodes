@@ -283,8 +283,8 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("log-normal", 2*p)))
 
-save(list=c("df.FpvalueR2"), file="Results/ANOVATables/FpR2_indi_lnGLM_crop.rda")
-write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_indi_lnGLM_crop.csv")
+# save(list=c("df.FpvalueR2"), file="Results/ANOVATables/FpR2_indi_lnGLM_crop.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_indi_lnGLM_crop.csv")
 
 
 
@@ -300,7 +300,7 @@ for(i in 1:p){
   df.FpvalueR2.1[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_indi_lnGLM_crop.csv")
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_indi_lnGLM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -342,13 +342,13 @@ df.posthoc2[,1] <- paste(summary(lsm3)$"contrast")
 colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
 colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
-write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_indi_lnGLM_crop.csv")
-write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_indi_lnGLM_crop.csv")
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_indi_lnGLM_crop.csv")
+# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_indi_lnGLM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-### normal LMM - Model Validation ####
+### log-normal GLM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 

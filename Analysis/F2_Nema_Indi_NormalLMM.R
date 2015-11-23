@@ -420,6 +420,8 @@ for(k in 1:p){
   qqnorm(E2)
   qqline(E2)
   
+  qqnorm(ls.models[[jk]], ~ranef(., level=2))
+  
   # plot age_class vs. residuals
   boxplot(E1 ~ indices$age_class[outlier[[k]]], cex.lab = 1.5, xlab="age_class", ylab="Residuals")
   
