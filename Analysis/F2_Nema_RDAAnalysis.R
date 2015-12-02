@@ -697,7 +697,7 @@ abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
   arrows(0, 0, spe.sc2[,1], spe.sc2[,2], length=0.07, angle=20, col="black")
   #identify(plot2, "sp", label=abv,cex=0.5)
   #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
-  dev.copy2pdf(file="Results/dbRDA12sc2.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")# 
+  #dev.copy2pdf(file="Results/dbRDA12sc2.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")# 
   
     # Scaling 1
     plot1 <- ordiplot(fam.db.repmes, choices=c(1,2),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
@@ -710,7 +710,7 @@ abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
     text(plot1, "species",label=abv, pch=4, cex=0.4) 
     #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
     #identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
-    dev.copy2pdf(file="Results/dbRDA12sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")
+    #dev.copy2pdf(file="Results/dbRDA12sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")
     
 # Axis 2 + 3
 #************
@@ -726,7 +726,7 @@ abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
   arrows(0, 0, spe.sc2[,3], spe.sc2[,2], length=0.07, angle=20, col="black")
   #identify(plot2, "sp", label=names(fam.usc),cex=0.5)
     #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.7)
-  dev.copy2pdf(file="Results/dbRDA23sc2.pdf", width=c/2.54, height=d/2.54, useDingbats=F,out.type = "pdf")# 
+  #dev.copy2pdf(file="Results/dbRDA23sc2.pdf", width=c/2.54, height=d/2.54, useDingbats=F,out.type = "pdf")# 
   
     # Scaling 1
     plot1 <- ordiplot(fam.db.repmes, choices=c(3,2),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
@@ -738,7 +738,7 @@ abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
     text(plot1, "species",label=abv, pch=4, cex=0.4) 
     legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
     #identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
-    dev.copy2pdf(file="Results/dbRDA23sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F,out.type = "pdf")# 
+    #dev.copy2pdf(file="Results/dbRDA23sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F,out.type = "pdf")# 
    
 # Axis 3 + 1
 #************
@@ -776,6 +776,104 @@ abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
 #     as  a  site  score.  For  instance,  we  expect  that  sites 
 #     with SP_O will contain more Hoplolaimidae
 
+    
+    
+    
+    shape_rda1 <- c(2,6,5,0,1)
+    shape_rda2 <- c(rep(c(2,6,5,0,1), each=3),rep(c(24,25,23,22,21), each=3))
+    
+    
+    #### Mit weighted averages scores ####
+    a = 7.3
+    b = 7.3
+    c = 9
+    d = 9.2
+    
+    p <- length(fam.db.repmes$CA$eig)
+    
+    windows()
+    
+    # Version 1 mit ordiplot()
+    par(mfrow=c(2,2),
+        mar=c(2,2,2,0.2),
+        oma=c(0,0,0,0),
+        mgp=c(01,0.2,0),
+        cex.lab=1,
+        cex.axis=1,
+        cex.main=1,
+        lwd=1,
+        tcl=NA,
+        pin=c(width=a/2.54, height=b/2.54))
+    
+    #par() # to see actual settings
+    
+    abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
+                      dot = FALSE, strict = FALSE,
+                      method = "left.kept")
+    
+    # Axis 1 + 2
+    #************
+    
+ 
+       
+    
+    # Scaling 1
+    plot1 <- ordiplot(fam.db.repmes, choices=c(1,2),type="n", scaling=1, display=c("wa","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
+    #ordiequilibriumcircle(fam.db.repmes,plot1)
+    #pcacircle(fam.db.repmes)
+    ordiellipse(plot1, env1$age_class, scaling=2, kind="se", conf=0.95)
+    points(plot1, "centroids", pch=3, bg="black", cex=0.8) 
+    points(plot1, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+    #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+    #dev.copy2pdf(file="Results/dbRDA12sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")
+    
+    # Scaling 1
+    plot1 <- ordiplot(fam.db.repmes, choices=c(3,2),type="n", scaling=1, display=c("wa","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
+    #ordiequilibriumcircle(fam.db.repmes,plot1)
+    #pcacircle(fam.db.repmes)
+    ordiellipse(plot1, env1$age_class, scaling=2, kind="se", conf=0.95)
+    points(plot1, "centroids", pch=3, bg="black", cex=0.8) 
+    points(plot1, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+    #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+    #dev.copy2pdf(file="Results/dbRDA12sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")
+    
+    # Scaling 2 
+    plot2 <- ordiplot(fam.db.repmes,choices=c(1,2), type="n", scaling=2, display=c("sp","cn"), main="Scaling 2 sp-scores")
+    #ordiellipse(plot2, env1$age_class, scaling=2, kind="se", conf=0.95)
+    pcacircle(fam.db.repmes)
+    points(plot2, "centroids", pch=3, bg="black", cex=0.8) 
+    #points(plot2, "species", pch=4, cex=0.8) 
+    text(plot2, "species",label=abv, pch=4, cex=0.4) 
+    sit.sc2 <- scores(fam.db.repmes, display="wa", choices=c(1:p))
+    spe.sc2 <- scores(fam.db.repmes, display="sp", choices=c(1:p))
+    arrows(0, 0, spe.sc2[,1], spe.sc2[,2], length=0.07, angle=20, code=2, col="black")
+    #identify(plot2, "sp", label=abv,cex=0.5)
+    #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+    #dev.copy2pdf(file="Results/dbRDA12sc2.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")# 
+    
+    
+    # Scaling 2 
+    plot2 <- ordiplot(fam.db.repmes,choices=c(3,2), type="n", scaling=2, display=c("sp","cn"), main="Scaling 2 sp-scores")
+    #ordiellipse(plot2, env1$age_class, scaling=2, kind="se", conf=0.95)
+    pcacircle(fam.db.repmes)
+    points(plot2, "centroids", pch=3, bg="black", cex=0.8) 
+    #points(plot2, "species", pch=4, cex=0.8) 
+    text(plot2, "species",label=abv, pch=4, cex=0.4) 
+    sit.sc2 <- scores(fam.db.repmes, display="wa", choices=c(1:p))
+    spe.sc2 <- scores(fam.db.repmes, display="sp", choices=c(1:p))
+    arrows(0, 0, spe.sc2[,3], spe.sc2[,2], length=0.07,  code=2, angle=20, col="black")
+    #identify(plot2, "sp", label=abv,cex=0.5)
+    #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+    #dev.copy2pdf(file="Results/dbRDA1232sc12quadro.pdf", width=19/2.54, height=18.5/2.54, useDingbats=F, out.type = "pdf")# 
+    
+    
+    
+    
+    
+    
+    
+    
+    
 # Version 2 mit cleanplot.pca
 cleanplot.pca(fam.db.repmes)
 
