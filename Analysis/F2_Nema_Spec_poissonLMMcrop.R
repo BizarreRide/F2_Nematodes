@@ -228,8 +228,8 @@ for(i in 1:p) {
   ls.models[[i]] <- assign(name, model)
   df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"LR Chisq"[1],2)
   df.Fpvalue[2,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)"[1],3)
-  #df.Fpvalue[2,2+(i*2)] <- round(car::Anova(model, type="II")$"F value"[1],2)
-  #df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>F)"[1],3)
+  #df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"F value"[1],2)
+  #df.Fpvalue[2,2+(i*2)] <- round(car::Anova(model)$"Pr(>F)"[1],3)
 }
 df.Fpvalue[2,1]  <- row.names(Anova(model))[1]
 df.Fpvalue[2,2]  <- Anova(model)$"Df"[1]

@@ -207,7 +207,7 @@ for (i in 1:p) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# normal LMM ####
+# normal LM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -221,19 +221,23 @@ df.Fpvalue[1,] <- c("X", "X", rep(c("F", "p-value"),p))
 
 ls.models <- list()
 
+vf1 <- nlme::varIdent(form= ~ 1|age_class)
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response[outlier[[i]],i]
-  model <- lm(y ~ age_class , indices2)
+  #model <- lm(y ~ age_class , indices2)
+  model <- nlme::gls(y ~ age_class , indices2, weights=vf1)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
   name <- paste("indi",i,names(df.response)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2,2+(i*2)] <- round(car::Anova(model, type="II")$"F value"[1],2)
-  df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>F)"[1],3)
+  #df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"F value"[1],2)
+  #df.Fpvalue[2,2+((i*2)-0)] <- round(car::Anova(model)$"Pr(>F)"[1],3)
+  df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq"[1],2)
+  df.Fpvalue[2,2+((i*2)-0)] <- round(car::Anova(model)$"Pr(>Chisq)"[1],3)
 }
 df.Fpvalue[2,1]  <- row.names(Anova(model))[1]
 df.Fpvalue[2,2]  <- Anova(model)$"Df"[1]
@@ -257,10 +261,10 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response)[1:p],each=2))
 
 # Summary *******************************************************************************
 
-df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
+df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("normal", 2*p)))
 
-save("df.FpvalueR2", file="Results/ANOVATables/FpR2_indi_LM_crop.rda")
-write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_indi_LM_crop.csv")
+# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_indi_LM_crop.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_indi_LM_crop.csv")
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
@@ -274,7 +278,7 @@ for(i in 1:p){
   df.FpvalueR2.1[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_indi_LM_crop.csv")
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_indi_LM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -316,8 +320,8 @@ df.posthoc2[,1] <- paste(summary(lsm3)$"contrast")
 colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
 colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
-write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_indi_LM_crop.csv")
-write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_indi_LM_crop.csv")
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_indi_LM_crop.csv")
+# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_indi_LM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -328,7 +332,7 @@ detach("package:lmerTest", unload=TRUE)
 library(lsmeans)
 
 for( i in 1:p) {
-lsm <- lsmeans(indi.lmer.crop[[i]], "age_class")
+lsm <- lsmeans(ls.models[[i]], "age_class")
 print(lsm)
 lsm2 <- contrast(lsm, "trt.vs.ctrl", ref=c(2:5))
 print(lsm2)
@@ -337,64 +341,62 @@ print(lsm2)
 Boxplot(y ~ age_class, indices2)
 }
 
-### normal LMM - Model Validation ####
+### normal LM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
-  # print(list(summary(indi.lmer.crop[[k]]),Anova(indi.lmer.crop[[k]], type="III")))
-  #corvif(indi.lmer.crop[[k]])
+  # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="III")))
+  #corvif(ls.models[[k]])
   
-  E1 <- resid(indi.lmer.crop[[k]], type="pearson")
-  E2 <- resid(indi.lmer.crop[[k]], type="response")
-  F1 <- fitted(indi.lmer.crop[[k]], type="response")
-  P1 <- predict(indi.lmer.crop[[k]], type="response")
+  E1 <- resid(ls.models[[k]], type="pearson")
+  E2 <- resid(ls.models[[k]], type="response")
+  F1 <- fitted(ls.models[[k]], type="response")
+  P1 <- predict(ls.models[[k]], type="response")
   
   par(mfrow=c(2,2),
       mar=c(4,4.5,1,2),
       oma=c(0,0,2,0)
   )
   # Plot fitted vs. residuals
-  scatter.smooth(F1, E1, cex.lab = 1.5, xlab="Fitted values", ylab=" Residuals")
+  scatter.smooth(F1, E1, span=4/5, cex.lab = 1.5, xlab="Fitted values", ylab=" Residuals")
   abline(h = 0, v=0, lty=2)
   
   # plot predicted vs. residuals
-  scatter.smooth(P1, E1, cex.lab = 1.5, xlab="Predicted values", ylab=" Residuals")
+  scatter.smooth(P1, E1, span=4/5, cex.lab = 1.5, xlab="Predicted values", ylab=" Residuals")
   abline(h = 0, v=0, lty=2)
-  
-  # plot fitted vs. predicted
-  #scatter.smooth(F1, P1, cex.lab = 1.5, xlab="Fitted values", ylab="Predicted")
-  abline(h = 0, v=0, lty=2)
-  
+    
   # Histogram of Residuals
   hist(E1, prob=TRUE, main = "", breaks = 20, cex.lab = 1.5, xlab = "Response Residuals", col="PapayaWhip")
   lines(density(E1), col="light blue", lwd=3)
   lines(density(E1, adjust=2), lty="dotted", col="darkgreen", lwd=2) 
   
-  title(names(indi.lmer.crop)[k], outer=TRUE)
   
   # Normal QQ Plots
   qqnorm(E2)
   qqline(E2)
   
+  title(names(ls.models)[k], outer=TRUE)
+  
+
+  
+  
   # plot age_class vs. residuals
   boxplot(E1 ~ indices$age_class[outlier[[k]]], cex.lab = 1.5, xlab="age_class", ylab="Residuals")
   
   # plot samcam vs. residuals
-  boxplot(E1 ~ indices$samcam[outlier[[k]]],cex.lab = 1.5, xlab="samcam", ylab="Residuals")
+  boxplot(E1 ~ indices$crop[outlier[[k]]],cex.lab = 1.5, xlab="samcam", ylab="Residuals")
   
-  # plot samcam vs. residuals
-  boxplot(E1 ~ indices$agsam[outlier[[k]]],cex.lab = 1.5, xlab="agsam", ylab="Residuals")
+  title(names(ls.models)[k], outer=TRUE)
   
-  title(names(indi.lmer.crop)[k], outer=TRUE)
   
   indices$y <- df.response[,k]
   
   par(mfrow=c(1,1))
-  scatter.smooth(F1,indices$y[outlier[[k]]], cex.lab = 1.5, xlab="Fitted values", ylab="Original values")
+  scatter.smooth(F1,df.response[outlier[[k]],k], span=4/5, cex.lab = 1.5, xlab="Fitted values", ylab="Original values")
   #text(F1,indices$y,label=interaction(indices$field.ID,indices$samcam),col='red')
   abline(h = 0, v=0, lty=2)
   
-  title(names(indi.lmer.crop)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
   
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -402,12 +404,12 @@ for(k in 1:p){
 # Residuals against variables not in the model ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for(k in 1:p){ 
-  #corvif(indi.lmer.crop[[k]])
+  #corvif(ls.models[[k]])
   
-  E1 <- resid(indi.lmer.crop[[k]], type="pearson")
-  E2 <- resid(indi.lmer.crop[[k]], type="response")
-  F1 <- fitted(indi.lmer.crop[[k]], type="response")
-  P1 <- predict(indi.lmer.crop[[k]], type="response")
+  E1 <- resid(ls.models[[k]], type="pearson")
+  E2 <- resid(ls.models[[k]], type="response")
+  F1 <- fitted(ls.models[[k]], type="response")
+  P1 <- predict(ls.models[[k]], type="response")
   
   par(mfrow=c(2,2),
       mar=c(4,4.5,1,2),
@@ -430,7 +432,7 @@ for(k in 1:p){
   scatter.smooth(indices$ata1[outlier[[k]]], E1, cex.lab = 1.5, xlab="Temperature", ylab="Predicted")
   abline(h = 0, v=0, lty=2)
   
-  title(names(indi.lmer.crop)[k], outer=TRUE)
+  title(names(ls.models)[k], outer=TRUE)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -440,7 +442,7 @@ for(k in 1:p){
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 infl <- list()
 for (k in 1:p) {
-  infl[[k]] <- influence(indi.lmer.crop[[k]], obs=TRUE)
+  infl[[k]] <- influence(ls.models[[k]], obs=TRUE)
 }
 
 for(k in 1:p) {

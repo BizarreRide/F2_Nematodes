@@ -1,9 +1,11 @@
 ###########################
 # F2 Nematodes
-# Normal LMM for Nematode Indices
+# Normal LMM for Nematode Indices using the nlme package
 # Quentin Schorpp
 # 12.11.2015
 ###########################
+
+# The Wald p and Chi² Values are the same from lme() and lmer() !!!!!!!!!!!
 
 
 # Load Data ####
@@ -169,7 +171,7 @@ outlier <- list(nema.BI <- -c(24,9),
                 nema.J <- -23,
                 nema.H1 <- 1:24,
                 nema.N <- 1:24)
-                
+
 
 
 # change factor properties
@@ -246,6 +248,12 @@ for (i in 1:p) {
 
 # normal LMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+detach("package:lmerTest", unload=TRUE)
+detach("package:pbkrtest", unload=TRUE)
+detach("package:lme4", unload=TRUE)
+
+library(nlme)
+
 
 df.Fpvalue <- matrix(NA,4,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response1)[1:p], each=2))
@@ -256,7 +264,8 @@ ls.models <- list()
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
-  model <- lmer(y ~ age_class*samcam +(1|field.ID), indices2)
+  vf1 <- varIdent(~ 1|age_class)
+  model <- lme(y ~ age_class*samcam, random = ~ 1|field.ID, weights=vf1,data=indices2,)
   #model <- glmer(y ~ age_class*samcam  +  (1|field.ID), family=gaussian(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
@@ -285,8 +294,8 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("normal", 2*p)))
 
-# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM.csv")
+# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM_nlme.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM_nlme.csv")
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
@@ -420,7 +429,7 @@ for(k in 1:p){
   qqnorm(E2)
   qqline(E2)
   
-  qqnorm(ls.models[[jk]], ~ranef(., level=2))
+  #qqnorm(ls.models[[jk]], ~ranef(., level=2))
   
   # plot age_class vs. residuals
   boxplot(E1 ~ indices$age_class[outlier[[k]]], cex.lab = 1.5, xlab="age_class", ylab="Residuals")

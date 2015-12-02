@@ -207,8 +207,8 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
 
-save("df.FpvalueR2", file="Results/ANOVATables/FpR2_ncr_bnGLM_crop.rda")
-write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_ncr_bnGLM_crop.csv")
+# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_ncr_bnGLM_crop.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_ncr_bnGLM_crop.csv")
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
@@ -223,7 +223,7 @@ for(i in 1:p){
   df.FpvalueR2.1[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_ncr_bnGLM_crop.csv")
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_ncr_bnGLM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -267,8 +267,8 @@ colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
 colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
 
-write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_ncr_bnGLM_crop.csv")
-write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_ncr_bnGLM_crop.csv")
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_ncr_bnGLM_crop.csv")
+# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_ncr_bnGLM_crop.csv")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
