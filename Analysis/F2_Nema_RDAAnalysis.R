@@ -13,48 +13,13 @@ source("Data/DataProcessing/DataProcessing.R")
 env1 <- droplevels(env.org[16:45,])
 source("Data/DataProcessing/EnvDataProcessing.R")
 #env.fin$c <-  env1$c
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-#  ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 data <- fam.org
 source("Data/DataProcessing/FamDatProcessing.R") 
 
 # Faunal Profile on subsample abundances
 fam.rel <- round(fam.rel*100,0) # choose basis data for faunal profile (.org, .rel, .usc)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-# Test for multivariate normality ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-# Log x+1 transformation of species data
-fam.log <- log1p(fam.usc)
-# centering species data
-fam.z <- data.frame(scale(fam.log))
-
-# Multivariate Shapiro Test of transposed species data
-fam.mnorm <- t(fam.z)
-mvnormtest::mshapiro.test(fam.mnorm)
-
-
-# QQ Plots of all variables
-par(mfrow=c(5,5))
-for (i in 1:25) {
-  qqnorm(fam.z[,i], xlab=colnames(fam.z[i]))
-  qqline(fam.z[,i]) 
-}
-
-# Histrograms of all variables
-par(mfrow=c(3,4))
-for (i in 1:6) {
-  hist(fam.z[,i], xlab=colnames(fam.z[i]))
-}
-summary(fam.z)
-par(mfrow=c(1,1))
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 ## 1. Data Preparation ####
 # after Ralf Schäfer 
@@ -146,11 +111,41 @@ decorana(fam.hel)
 fam.hel.d1 <- dist(fam.hel)
 fam.MHV <- betadisper(fam.hel.d1, env.fin$age_class)
 permutest(fam.MHV)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# Test for multivariate normality ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Log x+1 transformation of species data
+fam.log <- log1p(fam.usc)
+# centering species data
+fam.z <- data.frame(scale(fam.log))
+
+# Multivariate Shapiro Test of transposed species data
+fam.mnorm <- t(fam.z)
+mvnormtest::mshapiro.test(fam.mnorm)
+
+
+# QQ Plots of all variables
+par(mfrow=c(5,5))
+for (i in 1:25) {
+  qqnorm(fam.z[,i], xlab=colnames(fam.z[i]))
+  qqline(fam.z[,i]) 
+}
+
+# Histrograms of all variables
+par(mfrow=c(3,4))
+for (i in 1:6) {
+  hist(fam.z[,i], xlab=colnames(fam.z[i]))
+}
+summary(fam.z)
+par(mfrow=c(1,1))
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ## 2. PCA ####
 
-
-#******************************************************Repeated Measurements Data*******************************************************************####
+#***************************Repeated Measurements Data ******************************####
 
 ## 3. RDA ####
 ### for each sampling campaign ####
@@ -281,7 +276,7 @@ arrows(0,0,fam.sc2[,1], fam.sc2[,2],length=0, lty=1, col="red")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-## 3. partial tb-RDA #### 
+## 4. partial tb-RDA #### 
 # to eliminate the influence of repeated measurements 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -502,7 +497,9 @@ plot(fam.repmes, scaling=1, display=c("sp", "lc","cn"))
 plot(fam.repmes, display=c("sp", "lc","cn"))
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-## 4. partial db-RDA ####
+
+
+## 5. partial db-RDA ####
 # constrained Analysis of Principal Coordinates,CAP
 # to reduce the influence of repeated measurements and use the Bray Curtis distance 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -524,6 +521,10 @@ plot(fam.repmes, display=c("sp", "lc","cn"))
 #env.fin$field.ID <- as.factor(env.fin$field.ID)
 #env.fin$field.ID <- as.factor(chartr("ABCDEFGHIA","1234567890",  env.fin$field.ID))
 
+#fam.usc <- fam.usc.bu
+#fam.usc <- fam.usc[, !fam.sum<7]
+
+
 #fam.usc <- scale(fam.fin)
 decorana(fam.usc)
 # no unimodal relationship
@@ -544,9 +545,13 @@ fam.db.repmes <- capscale(fam.usc ~ age_class + Condition(samcam), distance="bra
 (fam.db.repmes2 <- capscale(fam.usc ~ age_class + pH + Condition(samcam), distance="bray", data=env.fin, add=TRUE))
 (fam.db.repmes2 <- capscale(fam.usc ~ age_class + pH + Condition(samcam + mc + clay + n), distance="bray", data=env.fin, add=TRUE))
 
+# most parsimonious RDA with fam.usc[, !fam.sum<7]:
+#(fam.db.repmes2 <- capscale(fam.usc ~ age_class + intensity + n + Condition(samcam), distance="bray", data=env.fin, add=TRUE))
+
 pro1 <- procrustes(fam.db.repmes, fam.db.repmes2)
 plot(pro1)
 summary(fam.db.repmes)
+model.matrix(fam.db.repmes)
 #names(summary(fam.db.repmes))
 
 # Global Test, test of all canonical axes and test of environemtal variables
@@ -615,8 +620,7 @@ RsquareAdj(c)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-# Ideas from https://www.ualberta.ca/~ahamann/teaching/renr690/Lab9b.pdf ####
+### Ideas from https://www.ualberta.ca/~ahamann/teaching/renr690/Lab9b.pdf ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ## getting the scores
 scores_dbRDA <- scores(fam.db.repmes,1:3)
@@ -633,7 +637,7 @@ correlations2 <- correlations[4:14,1:3] # The loadings we are interested in
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-##  Plots #####
+###  Plots #####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # with scaling method 1, the distances between sites on the graph are approximations of the Euclidean 
@@ -651,10 +655,18 @@ correlations2 <- correlations[4:14,1:3] # The loadings we are interested in
 shape_rda1 <- c(2,6,5,0,1)
 shape_rda2 <- c(rep(c(2,6,5,0,1), each=3),rep(c(24,25,23,22,21), each=3))
 
-### Mit weighted averages scores ####
+
+#### Mit weighted averages scores ####
+a = 7.3
+b = 7.3
+c = 9
+d = 9.2
+
+p <- length(fam.db.repmes$CA$eig)
+
 
 # Version 1 mit ordiplot()
-par(mfrow=c(1,1),
+par(mfrow=c(1,2),
     mar=c(2,2,2,0.2),
     oma=c(0,0,0,0),
     mgp=c(01,0.2,0),
@@ -663,7 +675,7 @@ par(mfrow=c(1,1),
     cex.main=0.5,
     lwd=0.3,
     tcl=NA,
-    pin=c(width=6/2.54, height=6/2.54))
+    pin=c(width=a/2.54, height=b/2.54))
 
 #par() # to see actual settings
 
@@ -678,49 +690,56 @@ abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
   ordiellipse(plot2, env1$age_class, scaling=2, kind="se", conf=0.95)
   points(plot2, "centroids", pch=3, bg="black", cex=0.8) 
   points(plot2, "sites", pch=shape_rda2, bg="black", cex=0.8) 
-  points(plot2, "species", pch=4, cex=0.8) 
+  #points(plot2, "species", pch=4, cex=0.8) 
   text(plot2, "species",label=abv, pch=4, cex=0.4) 
+  sit.sc2 <- scores(fam.db.repmes, display="wa", choices=c(1:p))
+  spe.sc2 <- scores(fam.db.repmes, display="sp", choices=c(1:p))
+  arrows(0, 0, spe.sc2[,1], spe.sc2[,2], length=0.07, angle=20, col="black")
   #identify(plot2, "sp", label=abv,cex=0.5)
-  legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
-  dev.copy2pdf(file="Results/dbRDA12sc2.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F, out.type = "pdf")# 
+  #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+  dev.copy2pdf(file="Results/dbRDA12sc2.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")# 
   
     # Scaling 1
     plot1 <- ordiplot(fam.db.repmes, choices=c(1,2),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
     ordiequilibriumcircle(fam.db.repmes,plot1)
+    #pcacircle(fam.db.repmes)
     ordiellipse(plot1, env1$age_class, scaling=2, kind="se", conf=0.95)
     points(plot1, "centroids", pch=3, bg="black", cex=0.8) 
-    points(plot1, "sites", pch=shape_rda2, bg="black", cex=0.8) 
-    points(plot1, "species", pch=4, cex=0.8) 
+    #points(plot1, "sites", pch=shape_rda2, bg="black", cex=0.8) 
+    #points(plot1, "species", pch=4, cex=0.8) 
     text(plot1, "species",label=abv, pch=4, cex=0.4) 
-    legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
+    #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
     #identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
-    dev.copy2pdf(file="Results/dbRDA12sc1.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F, out.type = "pdf")
+    dev.copy2pdf(file="Results/dbRDA12sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")
     
 # Axis 2 + 3
 #************
   # Scaling 2
-  plot2 <- ordiplot(fam.db.repmes,choices=c(2,3), type="n", scaling=2, display=c("wa","sp","cn"), main="Scaling 2 wa-scores")
+  plot2 <- ordiplot(fam.db.repmes,choices=c(3,2), type="n", scaling=2, display=c("wa","sp","cn"), main="Scaling 2 wa-scores")
   ordiellipse(plot2, env1$age_class, kind="se", conf=0.95)
   points(plot2, "centroids", pch=3, bg="black", cex=0.8)
   points(plot2, "sites", pch=shape_rda2, bg="black", cex=0.8) 
-  points(plot2, "species", pch=4, cex=0.8) 
+  #points(plot2, "species", pch=4, cex=0.8) 
   text(plot2, "species",label=abv, pch=4, cex=0.4) 
+  sit.sc2 <- scores(fam.db.repmes, display="wa", choices=c(1:p))
+  spe.sc2 <- scores(fam.db.repmes, display="sp", choices=c(1:p))
+  arrows(0, 0, spe.sc2[,3], spe.sc2[,2], length=0.07, angle=20, col="black")
   #identify(plot2, "sp", label=names(fam.usc),cex=0.5)
-  legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.7)
-  dev.copy2pdf(file="Results/dbRDA23sc2.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F,out.type = "pdf")# 
+    #legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.7)
+  dev.copy2pdf(file="Results/dbRDA23sc2.pdf", width=c/2.54, height=d/2.54, useDingbats=F,out.type = "pdf")# 
   
     # Scaling 1
-    plot1 <- ordiplot(fam.db.repmes, choices=c(2,3),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
+    plot1 <- ordiplot(fam.db.repmes, choices=c(3,2),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
     ordiequilibriumcircle(fam.db.repmes,plot1)
     ordiellipse(plot1, env1$age_class, scaling=2, kind="se", conf=0.95)
     points(plot1, "centroids", pch=3, bg="black", cex=0.8) 
     #points(plot1, "sites", pch=shape_rda2, bg="black", cex=0.8) 
-    points(plot1, "species", pch=4, cex=0.8) 
+    #points(plot1, "species", pch=4, cex=0.8) 
     text(plot1, "species",label=abv, pch=4, cex=0.4) 
     legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
     #identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
-    dev.copy2pdf(file="Results/dbRDA23sc1.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F,out.type = "pdf")# 
-    
+    dev.copy2pdf(file="Results/dbRDA23sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F,out.type = "pdf")# 
+   
 # Axis 3 + 1
 #************
   # Scaling 2
@@ -732,7 +751,7 @@ abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
   text(plot2, "species",label=abv, pch=4, cex=0.4)
   #identify(plot2, "sp", label=names(fam.usc),cex=0.5)
   legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.7)
-  dev.copy2pdf(file="Results/dbRDA31sc2.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F, out.type = "pdf")# 
+  dev.copy2pdf(file="Results/dbRDA31sc2.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")# 
 
     # Scaling 1
     plot1 <- ordiplot(fam.db.repmes, choices=c(3,1),type="n", scaling=1, display=c("wa","sp","cn"), main="Scaling 1 wa-scores") #, display=c("sp","lc","cn")
@@ -744,7 +763,7 @@ abv <- abbreviate(names(fam.usc), minlength = 3, use.classes = FALSE,
     text(plot1, "species",label=abv, pch=4, cex=0.4) 
     legend("bottomleft", legend=c("Sp_O", "SP_I2", "SP_I1", "Sp_Y", "Cm"), text.col="black", pch=shape_rda1, cex=0.4, pt.cex=0.5)
     #identify(plot1,"sp", labels=names(fam.usc), cex=1.0)
-    dev.copy2pdf(file="Results/dbRDA31sc1.pdf", width=8.5/2.54, height=8.5/2.54, useDingbats=F, out.type = "pdf")# 
+    dev.copy2pdf(file="Results/dbRDA31sc1.pdf", width=c/2.54, height=d/2.54, useDingbats=F, out.type = "pdf")# 
     
 #   Scaling 1:
 #     As discussed for RDA, the species scores show 
@@ -772,7 +791,7 @@ orgltext(fam.db.repmes, display = "species", choices = 1:3, pch=25, col="orange"
 orgltext(fam.db.repmes2, "text", display = "species", choices = 1:3, justify = "center", adj = 0.5)
 rgl.quit()
 
-### Mit Constraints scores ####
+#### Mit Constraints scores ####
 par(mfrow=c(1,1))
 plot1 <- ordiplot(fam.db.repmes,type="p", scaling=1, display=c("sp","lc","cn")) #, display=c("sp","lc","cn")
 ordiequilibriumcircle(fam.db.repmes,plot1)
@@ -835,7 +854,8 @@ par(mfrow=c(1,2))
 plot(fam.db.repmes, scaling=1, main="Triplot RDA - scaling 1 - wa scores")
 plot(fam.db.repmes, scaling=2, main="Triplot RDA - scaling 2 - wa scores")
 
-## ggplot2 Triplots ####
+
+### ggplot2 Triplots ####
 
 fam.rm.sc1 <- scores(fam.db.repmes, display=c("sp", "lc","cn", "bp"), scaling=1)
 fam.rm.sc2 <- scores(fam.db.repmes, display=c("sp", "lc","cn", "bp"), scaling=2)
@@ -997,7 +1017,7 @@ ggplot(ac.cid2, aes(x = CAP1, y = CAP2))+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-### Some testing rda() #####
+#### Some testing rda() #####
 env.fin.x <- env.fin[!env.fin$crop=="Silphie",] #1
 env.fin.x <- env.fin[!env.fin$crop=="Maize",] #2
 env.fin.x <- env.fin#3
@@ -1059,7 +1079,7 @@ fam.db.repmes <- capscale(fam.fin.x ~ fertilisation + Condition(field.ID), dista
 # for maize fields only: number of rows of matrices must match!
 
 
-#******************************************************Averaged Data *******************************************************************************####
+#**********************************Averaged Data *************************************####
 
 
 # db - RDA with averaged data ####

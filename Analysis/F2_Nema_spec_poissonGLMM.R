@@ -73,7 +73,7 @@ indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
 # 1. Analysis Zof FeedingTypes ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae")],0)
+df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Panagrolaimidae", "Aphelenchoididae", "Rhabditidae", "Aporcelaimidae")],0)
 df.response1 <- df.response1[!indices.backup$age_class%in% "A_Cm",]
 
 p <- ncol(df.response1)
@@ -139,7 +139,11 @@ outlier <- list(spec.Tyli <- -5,
                 spec.Hop <- -c(23,13),
                 spec.Cph <- 1:24,
                 spec.Plec <- -11,
-                spec.Telo <- -c(24,9))
+                spec.Telo <- -c(24,9),
+                spec.Pan <- -8,
+                spec.Aphd <- -c(15,10),
+                spec.Rha <- -c(21,12),
+                spec.Apo <- -c(22,20))
 
 
 # change factor properties
