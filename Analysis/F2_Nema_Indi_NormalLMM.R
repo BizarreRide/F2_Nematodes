@@ -67,6 +67,9 @@ indices$nsamcam <- as.numeric(factor(indices$samcam))
 
 indices.backup <- indices
 indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
+
+explanatory <- c("age_class", "samcam", "age_class:samcam") # include "intercept" when using Anova type III
+q <- length(explanatory)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -247,7 +250,7 @@ for (i in 1:p) {
 # normal LMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-df.Fpvalue <- matrix(NA,4,2+(2*p))
+df.Fpvalue <- matrix(NA,1+q,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response1)[1:p], each=2))
 df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
@@ -264,11 +267,11 @@ for(i in 1:p) {
   name <- paste("indi",i,names(df.response1)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2:4,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
-  df.Fpvalue[2:4,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
 }
-df.Fpvalue[2:4,1]  <- row.names(Anova(model))
-df.Fpvalue[2:4,2]  <- Anova(model)$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
+df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
 
 
 mod.names <- c(1:p)
@@ -290,14 +293,14 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("normal", 2*p)))
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
-df.FpvalueR2.1[2,] <- "NA"
+df.FpvalueR2.1[2:(1+q),] <- "NA"
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
   obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|field.ID),  indices2,  method="KR") 
-  df.FpvalueR2.1[2:4,2+(i*2)-1] <- round(obj.afex[[1]]$"F",2)
-  df.FpvalueR2.1[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>F)",3)
+  df.FpvalueR2.1[2:(1+q),2+(i*2)-1] <- round(obj.afex[[1]]$"F",2)
+  df.FpvalueR2.1[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>F)",3)
 }
 df.FpvalueR2.1[1,] <- c("X", "X", rep(c("KR-F", "p-value"),p))
 

@@ -63,6 +63,9 @@ indices$ID <- 1:nrow(indices)
 
 indices.backup <- indices
 indices <- indices.backup
+
+explanatory <- c("age_class") # include "intercept" when using Anova type III
+q <- length(explanatory)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -70,7 +73,7 @@ indices <- indices.backup
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fam.av.usc <- (fam.av/rowSums(fam.av))*counts.av$counts
-df.response <- round(fam.av.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae")],0)
+df.response <- round(fam.av.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Rhabditidae", "Aporcelaimidae", "Aphelenchoididae", "Panagrolaimidae")],0)
 
 
 p <- ncol(df.response)
@@ -148,7 +151,12 @@ outlier <- list(spec.Tyl <- -c(15,5),
                 spec.Hop <- -c(15,2),
                 spec.Cph <- -8,
                 spec.Plec <- -17,
-                spec.Telo <- -c(15,6))
+                spec.Telo <- -c(15,6),
+                spec.Rha <- -8,
+                spec.Apc <- -15,
+                spec.Aphdd <- -15,
+                spec.Pan <- -8)
+                
 
 
 # change factor properties
@@ -192,14 +200,14 @@ for (i in 1:p) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# poisson LMM ####
+# poisson GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # F and p-value squared *****************************************************************
 
 p <- ncol(df.response)
 
-df.Fpvalue <- matrix(NA,2,2+(2*p))
+df.Fpvalue <- matrix(NA,1+q,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response)[1:p], each=2))
 df.Fpvalue[1,] <- c("X", "X", rep(c("LR-CHI2", "p-value"),p))
 
@@ -214,8 +222,8 @@ require(lmerTest)
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response[outlier[[i]],i]
-  # model <- glm(y ~ age_class , family=poisson(link="log"), indices2) # all poisson glms were overdispersed
-   model <- glm.nb(y ~ age_class,start=c(log(mean(indices2$y)),0,0,0,0), indices2)
+   model <- glmer(y ~ age_class + (1|ID), family=poisson(link="log"), indices2) # all poisson glms were overdispersed
+  # model <- glm.nb(y ~ age_class,start=c(log(mean(indices2$y)),0,0,0,0), indices2)
   # model <- glmmadmb(y ~ age_class , family="nbinom", indices2)
   # model <- lm(y ~ age_class, indices2)
   # model <- glm(y+1 ~ age_class , family=gaussian(link="log"),  indices2) # start=c(log(mean(indices2$y)),0,0,0,0),
@@ -226,13 +234,13 @@ for(i in 1:p) {
   name <- paste("spec",i,names(df.response)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"LR Chisq"[1],2)
-  df.Fpvalue[2,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)"[1],3)
+  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq"[1],2)
+  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)"[1],3)
   #df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"F value"[1],2)
   #df.Fpvalue[2,2+(i*2)] <- round(car::Anova(model)$"Pr(>F)"[1],3)
 }
-df.Fpvalue[2,1]  <- row.names(Anova(model))[1]
-df.Fpvalue[2,2]  <- Anova(model)$"Df"[1]
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))[1]
+df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"[1]
 
 
 mod.names <- c(1:p)
@@ -255,8 +263,8 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("nbinom", 2*p)))
 
-# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_spec_poissonGLM_crop.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_poissonGLM_crop.csv")
+# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_spec_psGLMM_crop.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

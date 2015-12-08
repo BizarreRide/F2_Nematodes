@@ -67,6 +67,10 @@ indices$nsamcam <- as.numeric(factor(indices$samcam))
 
 indices.backup <- indices
 indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
+
+explanatory <- c("age_class", "samcam", "age_class:samcam")
+q <- length(explanatory)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -179,7 +183,7 @@ str(indices)
 # Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-df.Fpvalue <- matrix(NA,4,2+(2*p))
+df.Fpvalue <- matrix(NA,1+q,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response1)[1:p], each=2))
 df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
@@ -197,12 +201,12 @@ for(i in 1:p) {
   name <- paste("fety",i,names(df.response1)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2:4,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
-  df.Fpvalue[2:4,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
   # afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|field.ID), family=binomial, indices2,method = "LRT")
 }
-df.Fpvalue[2:4,1]  <- row.names(Anova(model))
-df.Fpvalue[2:4,2]  <- Anova(model)$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
+df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
 
 
 mod.names <- c(1:p)
@@ -233,18 +237,22 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p))
 df.FpvalueR2.1 <- df.FpvalueR2 
 
 for(i in 1:p){
+  
   indices2 <- indices[outlier[[i]],]
   indices2$scs <- df.response1[outlier[[i]],i]
   indices2$fail <- indices2[,"N"] - df.response1[outlier[[i]],i]
   indices2$pct <- df.response1[outlier[[i]],i]/indices2[,"N"]
   obj.afex <- afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|ID) + (1|field.ID), family=binomial, indices2,  method="LRT") 
-  df.FpvalueR2[2:4,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2[2:(1+q),2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
 # write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM.csv")
 
-
+# PS: Due to a bug in the current CRAN version of stringi the following 
+# warning message appears regularly in afex, but can be safely ignored:
+#   In stri_c(..., sep = sep, collapse = collapse, ignore_null = TRUE) :
+#   longer object length is not a multiple of shorter object length
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -290,35 +298,56 @@ df.posthoc[,2] <- paste(x$"samcam")
 colnames(df.posthoc) <- c("Factor1", "Factor1", rep(colnames(df.response1),each=2))
 df.posthoc <- rbind(c("age_class", "samcam", rep(c("prob", "group"), p)), df.posthoc)
 
-#  save(list=c("ls.models","ls.lsm", "df.FpvalueR2", "df.posthoc"), file="Results/ANOVATables/Fety_bnGLMM.rda")
-# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Fety_bnGLMM.csv")
 #************************************************************************
 
 
 ls.lsmAC <- list()
+df.posthocAC <- matrix(NA,12,2+(2*p))
+colnames(df.posthocAC) <- c("contrast", "samcam", rep(colnames(df.response1),each=2))
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam)
+  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam, at=list(samcam=c("2","4")))
   x <- contrast(lsm, "pairwise" , type = "response")
   print(x)
+  xx <- summary(x)
+  df.posthocAC[,2+((2*i)-1)] <- round(xx$"estimate",2)
+  df.posthocAC[,2+((2*i)-0)] <- round(xx$"p.value",3)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   ls.lsmAC[[i]] <- assign(name, lsm)
 }
+
+df.posthocAC[,1] <- paste(xx$"contrast")
+df.posthocAC[,2] <- paste(xx$"samcam")
+
 
 #************************************************************************
 
 
 ls.lsmSC <- list()
+df.posthocSC <- matrix(NA,4,2+(2*p))
+colnames(df.posthocSC) <- c("contrast", "age_class", rep(colnames(df.response1),each=2))
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
   lsm <- lsmeans(ls.models[[i]], pairwise ~ samcam|age_class)
   x <- contrast(lsm, "pairwise" , type = "response")
   print(x)
+  xx <- summary(x)
+  df.posthocSC[,2+((2*i)-1)] <- round(xx$"estimate",2)
+  df.posthocSC[,2+((2*i)-0)] <- round(xx$"p.value",3)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   ls.lsmSC[[i]] <- assign(name, lsm)
 }
+
+df.posthocSC[,1] <- paste(xx$"contrast")
+df.posthocSC[,2] <- paste(xx$"age_class")
+
+#  save(list=c("ls.models","ls.lsm", "df.FpvalueR2", "df.posthoc", "df.posthocAC", "df.posthocSC"), file="Results/ANOVATables/Fety_bnGLMM.rda")
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Fety_bnGLMM.csv")
+# write.csv(df.posthocAC, file="Results/ANOVATables/PostHocAC_Fety_bnGLMM.csv")
+# write.csv(df.posthocSC, file="Results/ANOVATables/PostHocSC_Fety_bnGLMM.csv")
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

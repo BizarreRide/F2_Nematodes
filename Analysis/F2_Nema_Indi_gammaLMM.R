@@ -67,6 +67,9 @@ indices$nsamcam <- as.numeric(factor(indices$samcam))
 
 indices.backup <- indices
 indices <- indices.backup[!indices.backup$age_class %in% "A_Cm",]
+
+explanatory <- c("age_class", "samcam", "age_class:samcam") # include "intercept" when using Anova type III
+q <- length(explanatory)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -265,8 +268,8 @@ for(i in 1:p) {
   name <- paste("indi",i,names(nema)[i], sep = ".")
   assign(name, model)
   indi.gammalmer[[i]] <- assign(name, model)
-  f.indi.gammalmer[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.indi.gammalmer[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  f.indi.gammalmer[,i+2] <- round(car::Anova(model, type="II")$"Chisq",2)
+  p.indi.gammalmer[,i+2] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
 }
 f.indi.gammalmer[,1] <- p.indi.gammalmer[,1]  <- row.names(Anova(model))
 f.indi.gammalmer[,2] <- p.indi.gammalmer[,2]  <- Anova(model)$"Df"

@@ -67,13 +67,16 @@ indices$nsamcam <- as.numeric(factor(indices$samcam))
 
 indices.backup <- indices
 indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
+
+explanatory <- c("age_class", "samcam", "age_class:samcam") # include "intercept" when using Anova type III
+q <- length(explanatory)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # 1. Analysis Zof FeedingTypes ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae")],0)
+df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Rhabditidae", "Aporcelaimidae", "Aphelenchoididae", "Panagrolaimidae")],0)
 df.response1 <- df.response1[!indices.backup$age_class%in% "A_Cm",]
 
 p <- ncol(df.response1)
@@ -139,7 +142,11 @@ outlier <- list(spec.Tyli <- -5,
                 spec.Hop <- -c(23,13),
                 spec.Cph <- 1:24,
                 spec.Plec <- -11,
-                spec.Telo <- -c(24,9))
+                spec.Telo <- -c(24,9),
+                spec.Rha <- -12,
+                spec.Apc <- -c(22,20),
+                spec.Aphdd <- -10,
+                spec.Pan <- -8)
 
 
 # change factor properties
@@ -192,7 +199,7 @@ rm("nbinom", "gamma", "poisson")
 # Poisson GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #require(glmmADMB)
-df.Fpvalue <- matrix(NA,4,2+(2*p))
+df.Fpvalue <- matrix(NA,1+q,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response1)[1:p], each=2))
 df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
@@ -202,8 +209,7 @@ for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
   model <- glmer(y ~ age_class*samcam  + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-  #model <- glmer.nb(y ~ age_class*samcam  + (1|field.ID), indices2, verbose=TRUE, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-  # model <- glmmadmb(y ~ age_class*samcam  + (1|field.ID), family="nbinom", indices2)
+  # model <- glmmadmb(y ~ age_class*samcam  + (1|field.ID), family="poisson", indices2)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
@@ -217,13 +223,13 @@ for(i in 1:p) {
   name <- paste("spec",i,names(df.response1)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2:4,2+((i*2)-1)] <- round(car::Anova(model)$"Chisq",2)[1:3]
-  df.Fpvalue[2:4,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)",3)[1:3]
+  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)[1:3]
+  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)[1:3]
 }
-df.Fpvalue[2:4,1]  <- row.names(Anova(model))
-df.Fpvalue[2:4,2]  <- Anova(model)$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
+df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
 
-# Only The Plectidae-Model is not overdispersed
+# Only The Plectidae-, Aporcelaimidae and Panagrolaimidae -Model is not overdispersed
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("spec",i,names(df.response1)[i], sep = "."))}
@@ -243,23 +249,23 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("poisson", 2*p)))
 
-# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM.csv")
+#save(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM.rda")
+#write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM.csv")
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
-df.FpvalueR2[2:4,] <- "NA"
+df.FpvalueR2.1[2:(1+q),] <- "NA"
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
   obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|field.ID), family=poisson, indices2,  method="LRT") 
-  df.FpvalueR2[2:4,2+((i*2)-1)] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2[2:4,2+(i*2)] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2.1[2:(1+q),2+((i*2)-1)] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2:(1+q),2+(i*2)] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
-df.FpvalueR2[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
+df.FpvalueR2.1[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_spec_psGLMM.csv")
+#write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_spec_psGLMM.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

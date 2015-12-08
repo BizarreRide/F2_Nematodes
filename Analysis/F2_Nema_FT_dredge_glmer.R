@@ -163,8 +163,8 @@ for(i in 1:p) {
   name <- paste("fety",i,names(fety2)[i], sep = ".")
   assign(name, model)
   fety.biglmer[[i]] <- assign(name, model)
-  f.fety.biglmer[,i+2] <- round(car::Anova(model)$"Chisq",2)
-  p.fety.biglmer[,i+2] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  f.fety.biglmer[,i+2] <- round(car::Anova(model, type="II")$"Chisq",2)
+  p.fety.biglmer[,i+2] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
 }
 f.fety.biglmer[,1] <- p.fety.biglmer[,1]  <- row.names(Anova(model))
 f.fety.biglmer[,2] <- p.fety.biglmer[,2]  <- Anova(model)$"Df"

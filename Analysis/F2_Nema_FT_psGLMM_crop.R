@@ -1,8 +1,8 @@
 ###########################
 # F2 Nematodes
-# Binomial GLMM for Nematode Feeding Types
+# Binomial GLMM
 # Quentin Schorpp
-# 12.11.2015
+# 11.08.2015
 ###########################
 
 
@@ -14,6 +14,9 @@ env1 <- droplevels(env.org[16:45,])
 source("Data/DataProcessing/EnvDataProcessing.R")
 data <- fam.org
 source("Data/DataProcessing/FamDatProcessing.R") 
+source("Data/DataProcessing/AverageData.R") 
+
+
 
 asinTransform <- function(p) { asin(sqrt(p)) }
 
@@ -29,8 +32,8 @@ dispersion_glmer<- function(modelglmer)
   return(  sqrt( sum(c(modelglmer@resid, modelglmer@u) ^2) / n ) )
 }
 
-#library(influence.ME)
-#library(lmerTest)
+library(influence.ME)
+library(lmerTest)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # as needed
@@ -40,41 +43,37 @@ dispersion_glmer<- function(modelglmer)
 
 
 
-# Data procsessing ####
+# Data processing ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # create interaction factor for interaction between age_class and samcam, 
 # to see if age_class effects stay constant
 
-env1$agsam <- with(env1, interaction(age_class,samcam))
-#env.fin$c <-  env1$c # include carbon
+env.av$agsam <- with(env.av, interaction(age_class,samcam))
+#env.av$c <-  env1$c # include carbon
 
 #fam.rel <- round(fam.rel*100,0) # choose basis data for faunal profile (.org, .rel, .usc)
 
-indices <- data.frame(ID = 1:nrow(env1),
-                      age_class=env1$age_class,
-                      samcam = env1$samcam,
-                      nsamcam = as.numeric(factor(env1$samcam)),
-                      agsam = env1$agsam,
-                      location=env1$location,
-                      field.ID = env1$field.ID,
-                      n = env1$n,
-                      mc = env1$mc,
-                      pH = env1$pH,
-                      ata1 = env1$ata1,
-                      N=rowSums(fam.org))
-
-indices$nsamcam <- as.numeric(factor(indices$samcam))
+indices <- data.frame(age_class=env.av$age_class, 
+                      field.ID=env.av$field.ID, 
+                      crop=env.av$crop, 
+                      N=round(rowSums(fam.av),0), 
+                      n=env.av$n, 
+                      mc = env.av$mc, 
+                      pH = env.av$pH, 
+                      ata1 = env.av$ata1)
+indices$ID <- 1:nrow(indices)
 
 indices.backup <- indices
-indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
+indices <- droplevels(indices.backup)
 
-explanatory <- c("age_class", "samcam", "age_class:samcam") # include "intercept" when using Anova type III
+explanatory <- c("age_class") # include "intercept" when using Anova type III
 q <- length(explanatory)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # 1. Analysis of FeedingTypes ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+data=fam.av
 source("Data/DataProcessing/FeedingTypes.R") 
 colnames(fety)[2:10] <- c("herbivoresb","herbivoresc","herbivoresd","herbivorese","fungivores","bacterivores", "carnivores", "omnivores", "Tylenchidae")
 fety <- as.data.frame(fety[,-1])
@@ -83,23 +82,23 @@ fety$herbivores <- rowSums(fety[,c(1,2,3,4)])
 fety$herbivores2 <- fety$herbivores + fety$Tylenchidae
 fety$fungivores2 <- fety$fungivores + fety$Tylenchidae
 
-
-df.response1 <- fety[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response1 <- round(fety[,-c(1:4)],0)
 df.response2 <- df.response1/indices$N     # Percentage data
-df.response3 <- round(df.response2*counts[16:45,][!indices.backup$age_class %in% "A_Cm", "counts"],0)
+df.response3 <- round(df.response2*counts.av$counts,0)
+
 p <- ncol(df.response3)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 # Fligner Killeen Test for Heteroscedasticity: ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-pvector <- c(1:p)
-for (i in 1:p) {
-  fk <-  fligner.test(df.response3[,i] ~ indices$agsam)
+pvector <- c(2:10)
+for (i in 2:10) {
+  fk <-  fligner.test(fety[,i] ~ indices$agsam)
   pvector[i] <- fk$p.value
-  boxplot(df.response3[,i]~indices$agsam)
+  boxplot(fety[,i]~indices$agsam)
 }
-any(pvector<0.05) # Here is sth. wrong!!
+any(pvector<0.05)
 pvector
 
 # There is no violation of heterosecedasticity for any of the indices
@@ -128,17 +127,29 @@ for(i in 1:p) {
 
 # Detecting Outliers ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-row.names(df.response3) <- 1:nrow(df.response3)
+
 for(i in 1:p) {
   par(mfrow = c(2,2),
       mar = c(3,3,0,1),
       mgp = c(1.5,0.5,0),
       tck = -0.03,
       oma = c(0,0,2,0))
-  indices$y <- fety[!indices.backup$age_class %in% "A_Cm",i+4]
+  indices$y <- df.response2[,i+4]
   car::Boxplot(indices$y ~ indices$age_class)
-  car::Boxplot(indices$y ~ indices$samcam)
-  car::Boxplot(indices$y ~ indices$agsam)
+  car::Boxplot(indices$y ~ indices$crop)
+  title(names(df.response3)[i],outer=TRUE)
+}
+
+
+for(i in 1:p) {
+  par(mfrow = c(2,2),
+      mar = c(3,3,0,1),
+      mgp = c(1.5,0.5,0),
+      tck = -0.03,
+      oma = c(0,0,2,0))
+  indices$y <- df.response3[,i]
+  car::Boxplot(indices$y ~ indices$age_class)
+  car::Boxplot(indices$y ~ indices$crop)
   title(names(df.response3)[i],outer=TRUE)
 }
 
@@ -158,61 +169,58 @@ for(i in 1:p) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # drop Outliers ####
-outlier <- list(fety.fungi <- -9,
-                fety.bacti <- -20,
-                fety.carni <- -20,
-                fety.omni <- -c(22,17),
-                fety.Tyli <- -13,
-                fety.herbi <- -19,
-                fety.herbi2 <- -21,
-                fety.fungi2 <- 1:24)
+outlier <- list(fety.fungi <- -15,
+                fety.bacti <- -8,
+                fety.carni <- -8,
+                fety.omni <- -15,
+                fety.Tyli <- -15,
+                fety.herbi <- -15,
+                fety.herbi2 <- -15,
+                fety.fungi2 <- -15)
 
 
-# change factor properties
+
 indices$age_class2 <- indices$age_class
 indices$age_class <- as.ordered(indices$age_class)
 indices$age_class <- indices$age_class2
 
-indices$samcam2 <- indices$samcam
-indices$samcam <- indices$nsamcam
-indices$samcam <- indices$samcam2
 
 str(indices)
 
-# P☺isson GLMM ####
+# Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# F and p-value squared *****************************************************************
 
 df.Fpvalue <- matrix(NA,1+q,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response3)[1:p], each=2))
 df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
+
 
 ls.models <- list()
 
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response3[outlier[[i]],i]
-  #model <- lmer(y ~ age_class*samcam  + (1|ID) + (1|field.ID), indices2)
-  model <- glmer(y ~ age_class*samcam  + (1|ID) + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-  #model <- glmer.nb(y ~ age_class*samcam  + (1|ID) + (1|field.ID), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  model <- glmer(y ~ age_class + (1|ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  #model <- glmer(cbind(scs,fail) ~ crop - 1   + (1|ID) + (1|age_class), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
-  print(overdisp_fun(model))
-  name <- paste("fety",i,names(df.response3)[i], sep = ".")
+  print(overdisp_fun(model))  
+  name <- paste("fetyC",i,names(df.response3)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
-  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
-  # afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|field.ID), family=binomial, indices2,method = "LRT")
+  df.Fpvalue[2:(1+q),2+(i*2)-1] <- round(car::Anova(model, type="II")$"Chisq",2)
+  df.Fpvalue[2:(1+q),2+((i*2))] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
 }
 df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
 df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
 
-
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("fety",i,names(df.response3)[i], sep = "."))}
 names(ls.models)[1:p] <- mod.names
-str(indices2)
+
 
 # R² - R squared ***********************************************************************
 
@@ -227,109 +235,75 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response3)[1:p],each=2))
 
 # Summary *******************************************************************************
 
-df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("poisson", 2*p)))
+df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
 
-#  save(df.FpvalueR2, file="Results/ANOVATables/FpR2_FetyUSC_psGLMM.rda")
-#  write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_FetyUSC_psGLMM.csv")
-
+# save(list=c("df.FpvalueR2"), file="Results/ANOVATables/FpR2_FetyUSC_psGLMM_crop.rda")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_FetyUSC_psGLMM_crop.csv")
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
-df.FpvalueR2.1[2:(1+q),] <- "NA"
+df.FpvalueR2.1[2:(1+q),] <- "NA" 
+
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response3[outlier[[i]],i]
-  obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|ID) + (1|field.ID), family=poisson, indices2,  method="LRT") 
-  df.FpvalueR2.1[2:(1+q),2+((i*2)-1)] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2.1[2:(1+q),2+(i*2)] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  obj.afex <- afex::mixed(y ~ age_class + (1|ID), family=poisson, indices2, method="LRT") 
+  df.FpvalueR2.1[2:(1+q),2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
-df.FpvalueR2.1[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
-# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_FetyUSC_psGLMM.csv")
-
-
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_FetyUSC_psGLMM_crop.csv")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# Post Hoc data inspection with lsmeans package ####
+# Post Hoc ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 detach("package:piecewiseSEM", unload=TRUE)
 detach("package:lmerTest", unload=TRUE)
 detach("package:afex", unload=TRUE)
 detach("package:lsmeans", unload=TRUE)
 library(lsmeans)
-library(multcompView)
 
-ls.lsm<- list()
+df.posthoc <- matrix(NA,1,1+2*p)
+df.posthoc2 <- matrix(NA,4,1+2*p)
 
-df.posthoc <- matrix(NA,8,2+(2*p))
-
-for (i in 1:p) {
+for(i in 1:p) {
+  lsm <- lsmeans::lsmeans(ls.models[[i]], "age_class")
+  lsm2 <- contrast(lsm, "trt.vs.ctrl", ref=c(2:5))
+  print(lsm2)
+  df.posthoc[,(2*i)] <- round(summary(lsm2)$estimate,3)
+  df.posthoc[,(2*i)+1] <- round(summary(lsm2)$p.value,3)
+  lsm2 <- contrast(regrid(lsm), "trt.vs.ctrl", ref=c(2:5)) # Why do the p-values differ if i use regrid() ???
+  df.posthoc[,(2*i)] <- round(summary(lsm2)$estimate,3)
+  lsm3 <- contrast(lsm, "trt.vs.ctrl", ref=c(1))
+  print(lsm3)
+  df.posthoc2[,(2*i)] <- round(summary(lsm3)$estimate,3)
+  df.posthoc2[,(2*i)+1] <- round(summary(lsm3)$p.value,3)
+  lsm3 <- contrast(regrid(lsm), "trt.vs.ctrl", ref=c(1))
+  df.posthoc2[,(2*i)] <- round(summary(lsm3)$estimate,3)
+  
   indices2 <- indices[outlier[[i]],]
-  indices2$y <- df.response3[outlier[[i]],i]
-  # get the results on a back transformed scale:
-  lsm <- lsmeans::lsmeans(ls.models[[i]],  ~ age_class*samcam, data=indices2, contr= "cld")
-  x <- cld(lsm, type = "response", sort=FALSE)
-  df.posthoc[,2+((2*i)-1)] <- x$"rate" # rate in poisson models
-  df.posthoc[,2+((2*i)-0)] <- x$".group"
-  print(x)
-  name <- paste("lsm",i,names(df.response3)[i], sep = ".")
-  ls.lsm[[i]] <- assign(name, lsm)
-  # to see the results graphically
-  p1 <- plot(lsm, by = "samcam", intervals = TRUE, type = "response")
-  print(p1)
-  #title(names(ncr.biglmer)[i], outer=TRUE)
+  indices2$scs <- df.response3[outlier[[i]],i]
+  indices2$fail <- indices2[,"N"] - df.response3[outlier[[i]],i]
+  Boxplot(scs ~ age_class, indices2)
 }
 
+df.posthoc[,1] <- paste(summary(lsm2)$"contrast")
+df.posthoc2[,1] <- paste(summary(lsm3)$"contrast")
 
-for(i in 1:p){
-  lsmip(ls.lsm[[i]], age_class ~ samcam, type = "response")
-  summary(pairs(ls.lsm[[i]]), type = "response")
-  summary(pairs(regrid(ls.lsm[[i]])), type = "response")
-}
+colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
+colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
-df.posthoc[,1] <- paste(x$"age_class")
-df.posthoc[,2] <- paste(x$"samcam")
-
-colnames(df.posthoc) <- c("Factor1", "Factor1", rep(colnames(df.response3),each=2))
-df.posthoc <- rbind(c("age_class", "samcam", rep(c("rate", "group"), p)), df.posthoc)
-
-# save(list=c("ls.models","ls.lsm", "df.FpvalueR2", "df.posthoc"), file="Results/ANOVATables/FetyUSC_psGLMM.rda")
-# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_FetyUSC_psGLMM.csv")
-#************************************************************************
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_FetyUSC_psGLMM_crop.csv")
+# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_FetyUSC_psGLMM_crop.csv")
 
 
-ls.lsmAC <- list()
-
-for (i in 1:p) {
-  # get the results on a back transformed scale:
-  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam)
-  x <- contrast(lsm, "pairwise" , type = "response")
-  print(x)
-  name <- paste("lsm",i,names(df.response3)[i], sep = ".")
-  ls.lsmAC[[i]] <- assign(name, lsm)
-}
-
-#************************************************************************
-
-
-ls.lsmSC <- list()
-
-for (i in 1:p) {
-  # get the results on a back transformed scale:
-  lsm <- lsmeans(ls.models[[i]], pairwise ~ samcam|age_class)
-  x <- contrast(lsm, "pairwise" , type = "response")
-  print(x)
-  name <- paste("lsm",i,names(df.response3)[i], sep = ".")
-  ls.lsmSC[[i]] <- assign(name, lsm)
-}
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-
-### binLomial GLMM - Model Validation ####
+### binomial GLMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
@@ -372,10 +346,7 @@ for(k in 1:p){
   boxplot(E1 ~ indices$age_class[outlier[[k]]], cex.lab = 1.5, xlab="age_class", ylab="Residuals")
   
   # plot samcam vs. residuals
-  boxplot(E1 ~ indices$samcam[outlier[[k]]],cex.lab = 1.5, xlab="samcam", ylab="Residuals")
-  
-  # plot samcam vs. residuals
-  boxplot(E1 ~ indices$agsam[outlier[[k]]],cex.lab = 1.5, xlab="agsam", ylab="Residuals")
+  boxplot(E1 ~ indices$crop[outlier[[k]]],cex.lab = 1.5, xlab="agsam", ylab="Residuals")
   
   title(names(ls.models)[k], outer=TRUE)
   
@@ -441,82 +412,6 @@ for(k in 1:p) {
   print(plot1)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-# Post Hoc Tukey Tests  ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-source("Analysis/F2_Nema_ContrastMatrix.R")
-
-#####
-indices <- droplevels(indices)
-PH.list <- list()
-
-for(i in 1:p) {
-  indices2 <- indices[outlier[[i]],]
-  indices2$scs <- df.response3[outlier[[i]],i]
-  indices2$fail <- indices2[,"N"] - df.response3[outlier[[i]],i]
-  model <- glmer(cbind(scs, fail) ~ agsam + (1|ID) + (1|field.ID), family=binomial(link="logit"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))) # No Difference
-  posthoc <- glht(model, linfct=mcp(agsam=cm1))
-  #   posthoc.ci <- confint(posthoc)
-  #   posthoc.sig <- which(posthoc.ci$confint[,2]>0)
-  #   data.frame(names(potshoc.ci))
-  posthoc <- print(summary(posthoc, test = adjusted(type = "bonferroni")))
-  nam <- paste("glht",i,names(df.response3[i]), sep = ".")
-  PH.list[[i]] <- assign(nam, posthoc)
-}
-
-#####
-
-# Plot Errorbars
-phfig1 <- ggplot(posthoc.ci, aes(y = lhs, x = exp(estimate), xmin = exp(lwr), xmax = exp(upr))) + 
-  geom_errorbarh() + 
-  geom_point() + 
-  geom_vline(xintercept = 1) +
-  mytheme
-phfig1
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-# Prediction plots ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-indices <- droplevels(indices)
-
-testdata = expand.grid(age_class=unique(indices$age_class),
-                       samcam = unique(indices$samcam))
-
-test.list <- list()
-
-for(i in 1:p) {
-  X <- model.matrix(~ age_class*samcam, data = testdata)
-  testdata$fit <- X %*% fixef(ls.models[[i]])
-  testdata$SE <- sqrt(  diag(X %*%vcov(ls.models[[i]]) %*% t(X))  )
-  testdata$upr=testdata$fit+1.96*testdata$SE
-  testdata$lwr=testdata$fit-1.96*testdata$SE
-  nam <- paste("tdata",i,names(df.response3[i]), sep = ".")
-  test.list[[i]] <- assign(nam, testdata)
-}
-
-df.response3 <- df.response2[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
-df.response3$age_class <- indices$age_class
-
-for (i in 1:p) {
-  df.response3$response <- df.response3[,i]
-  print(ggplot(test.list[[i]], aes(x = age_class, y = exp(fit))) + 
-          #geom_bar(stat="identity",position = position_dodge(1), col="454545", size=0.15, fill="grey") +
-          geom_point(aes(x=as.numeric(age_class)+0.5),pch=23, size=5, bg="aquamarine2") + 
-          geom_errorbar(aes(x=as.numeric(age_class)+0.5, ymin = exp(lwr), ymax = exp(upr)),position = position_dodge(1),col="black",width=0.15, size=0.15) + 
-          geom_boxplot(aes(y=response, fill=age_class), data=df.response3[outlier[[i]],]) +
-          facet_grid(.~samcam) +
-          geom_hline(xintercept = 1, size=0.15) +
-          ylab("Nematodes?") +
-          xlab("Age Class") +
-          scale_x_discrete(labels=c("Sp_Y", "Sp_I1", "Sp_I2", "Sp_O")) +
-          theme_bw() +
-          theme(axis.text.x =element_text(angle=30, hjust=1, vjust=1)))
-}
-
-df.response3 <- fety[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
 
 #####
 

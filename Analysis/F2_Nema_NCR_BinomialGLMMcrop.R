@@ -63,6 +63,9 @@ indices$ID <- 1:nrow(indices)
 
 indices.backup <- indices
 indices <- droplevels(indices.backup)
+
+explanatory <- c("age_class") # include "intercept" when using Anova type III
+q <- length(explanatory)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -163,7 +166,7 @@ str(indices)
 # F and p-value squared *****************************************************************
 
 
-df.Fpvalue <- matrix(NA,2,2+(2*p))
+df.Fpvalue <- matrix(NA,1+q,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response)[1:p], each=2))
 df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
@@ -181,11 +184,11 @@ for(i in 1:p) {
   name <- paste("ncr",i,names(df.response)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2,2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
-  df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
 }
-df.Fpvalue[2,1]  <- row.names(Anova(model))
-df.Fpvalue[2,2]  <- Anova(model)$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
+df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("ncr",i,names(df.response)[i], sep = "."))}
@@ -212,15 +215,15 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p))
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
-df.FpvalueR2.1[2,] <- "N"
+df.FpvalueR2.1[2:(1+q),] <- "N"
 
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$scs <- df.response[outlier[[i]],i]
   indices2$fail <- rowSums(df.response[outlier[[i]],]) - df.response[outlier[[i]],i]
   obj.afex <- afex::mixed(cbind(scs,fail) ~ age_class + (1|ID), family=binomial(link="logit"), indices2, method="LRT") 
-  df.FpvalueR2.1[2,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2.1[2,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2.1[2:(1+q),2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
 # write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_ncr_bnGLM_crop.csv")

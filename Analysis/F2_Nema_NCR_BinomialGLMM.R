@@ -67,6 +67,9 @@ indices$nsamcam <- as.numeric(factor(indices$samcam))
 
 indices.backup <- indices
 indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
+
+explanatory <- c("age_class", "samcam", "age_class:samcam") # include "intercept" when using Anova type III
+q <- length(explanatory)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -169,7 +172,7 @@ str(indices)
 # Bi☺nomial GLMM ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-df.Fpvalue <- matrix(NA,4,2+(2*p))
+df.Fpvalue <- matrix(NA,1+q,2+(2*p))
 colnames(df.Fpvalue) <- c("Env", "DF", rep(colnames(df.response)[1:p], each=2))
 df.Fpvalue[1,] <- c("X", "X", rep(c("CHI2", "p-value"),p))
 
@@ -186,11 +189,11 @@ for(i in 1:p) {
   name <- paste("ncr",i,names(df.response)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2:4,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
-  df.Fpvalue[2:4,2+(i*2)] <- round(car::Anova(model)$"Pr(>Chisq)",3)
+  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
 }
-df.Fpvalue[2:4,1]  <- row.names(Anova(model))
-df.Fpvalue[2:4,2]  <- Anova(model)$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
+df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
 
 mod.names <- c(1:p)
 for(i in 1:p) { mod.names[i] <- c(paste("ncr",i,names(df.response)[i], sep = "."))}
@@ -214,7 +217,7 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p))
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
-df.Fpvalue2.1[2:4,] <- "NA"
+df.Fpvalue2.1[2:(1+q),] <- "NA"
 
 
 for(i in 1:p){
@@ -222,8 +225,8 @@ for(i in 1:p){
   indices2$scs <- df.response[outlier[[i]],i]
   indices2$fail <- rowSums(df.response[outlier[[i]],]) - df.response[outlier[[i]],i]
   obj.afex <- afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|ID) + (1|field.ID), family=binomial, indices2,  method="LRT") 
-  df.FpvalueR2.1[2:4,2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2.1[2:4,2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2.1[2:(1+q),2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 df.FpvalueR2[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
