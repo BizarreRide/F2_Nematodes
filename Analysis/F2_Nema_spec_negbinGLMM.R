@@ -76,7 +76,11 @@ q <- length(explanatory)
 # 1. Analysis Zof FeedingTypes ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+<<<<<<< HEAD
 df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Rhabditidae", "Aphelenchoididae", "Panagrolaimidae", "Aporcelaimidae")],0)
+=======
+df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Aphelenchoididae", "Rhabditidae", "Aporcelaimidae",  "Panagrolaimidae")],0)
+>>>>>>> 54ccc836eed9100f40938e12eb66c78b879e1d10
 df.response1 <- df.response1[!indices.backup$age_class%in% "A_Cm",]
 
 p <- ncol(df.response1)
@@ -142,11 +146,20 @@ outlier <- list(spec.Tyli <- -5,
                 spec.Hop <- -c(23,13),
                 spec.Cph <- 1:24,
                 spec.Plec <- -11,
+<<<<<<< HEAD
                 spec.Telo <- 1:24,
                 spec.Rha <- -12,
                 spec.Aphdd <- -10,
                 spec.Pan <- 1:24, #-8,
                 spec.Apc <- 1:24) #-c(22,20))
+=======
+                spec.Telo <- -c(24,9),
+                spec.Aphd <- -c(15,10),
+                spec.Rha <- -c(21,12),
+                spec.Apo <- -c(22,20),
+                spec.Pan <- -8)
+              
+>>>>>>> 54ccc836eed9100f40938e12eb66c78b879e1d10
 
 
 # change factor properties
