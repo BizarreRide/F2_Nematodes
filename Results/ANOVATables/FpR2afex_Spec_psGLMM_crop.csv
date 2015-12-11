@@ -1,0 +1,6 @@
+"","Env","DF","Tylenchidae","Tylenchidae","Aphelenchidae","Aphelenchidae","Hoplolaimidae","Hoplolaimidae","Cephalobidae","Cephalobidae","Plectidae","Plectidae","Telotylenchidae","Telotylenchidae","Rhabditidae","Rhabditidae","Aporcelaimidae","Aporcelaimidae","Aphelenchoididae","Aphelenchoididae","Panagrolaimidae","Panagrolaimidae"
+"1","X","X","Chisq","p-value","Chisq","p-value","Chisq","p-value","Chisq","p-value","Chisq","p-value","Chisq","p-value","Chisq","p-value","Chisq","p-value","Chisq","p-value","Chisq","p-value"
+"2","NA","NA","12.86","0.012","27.35","0","9.5","0.05","9.69","0.046","7.31","0.12","10.72","0.03","12.04","0.017","10.29","0.036","23.49","0","3.57","0.467"
+"3","R2m",NA,NA,"0.57",NA,"0.86",NA,"0.48",NA,"0.45",NA,"0.38",NA,"0.51",NA,"0.53",NA,"0.47",NA,"0.77",NA,"0.2"
+"4","R2c",NA,NA,"0.57",NA,"0.86",NA,"0.48",NA,"0.45",NA,"0.38",NA,"0.51",NA,"0.53",NA,"0.47",NA,"0.77",NA,"0.2"
+"5","X","X","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson"

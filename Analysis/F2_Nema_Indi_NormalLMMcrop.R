@@ -229,18 +229,18 @@ vf1 <- nlme::varIdent(form= ~ 1|age_class)
 for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response[outlier[[i]],i]
-  #model <- lm(y ~ age_class , indices2)
-  model <- nlme::gls(y ~ age_class , indices2, weights=vf1)
+  model <- lm(y ~ age_class , indices2)
+  #model <- nlme::gls(y ~ age_class , indices2, weights=vf1)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
   name <- paste("indi",i,names(df.response)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  #df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"F value"[1],2)
-  #df.Fpvalue[2,2+((i*2)-0)] <- round(car::Anova(model, type="II")$"Pr(>F)"[1],3)
-  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq"[1],2)
-  df.Fpvalue[2:(1+q),2+((i*2)-0)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)"[1],3)
+  df.Fpvalue[2,2+((i*2)-1)] <- round(car::Anova(model, type="II")$"F value"[1],2)
+  df.Fpvalue[2,2+((i*2)-0)] <- round(car::Anova(model, type="II")$"Pr(>F)"[1],3)
+  #df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq"[1],2)
+  #df.Fpvalue[2:(1+q),2+((i*2)-0)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)"[1],3)
 }
 df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))[1]
 df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"[1]
@@ -266,8 +266,9 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("normal", 2*p)))
 
-# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_indi_LM_crop.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_indi_LM_crop.csv")
+# save(list=c("df.FpvalueR2"), file="Results/ANOVATables/FpR2_Indi_LMM_crop.rda")
+write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM_crop.csv")
+write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
@@ -281,7 +282,8 @@ for(i in 1:p){
   df.FpvalueR2.1[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_indi_LM_crop.csv")
+write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Indi_LMM_crop.csv")
+write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -323,8 +325,10 @@ df.posthoc2[,1] <- paste(summary(lsm3)$"contrast")
 colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
 colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
-# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_indi_LM_crop.csv")
-# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_indi_LM_crop.csv")
+write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_Indi_LMM_crop.csv")
+write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_Indi_LMM_crop.csv")
+write.table(df.posthoc, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+write.table(df.posthoc2, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

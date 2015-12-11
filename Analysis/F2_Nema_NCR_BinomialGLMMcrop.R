@@ -210,8 +210,9 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
 
-# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_ncr_bnGLM_crop.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_ncr_bnGLM_crop.csv")
+# save(list=c("df.FpvalueR2"), file="Results/ANOVATables/FpR2_NCR_bnGLMM_crop.rda")
+write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_NCR_bnGLMM_crop.csv")
+write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_NCR_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
@@ -226,7 +227,8 @@ for(i in 1:p){
   df.FpvalueR2.1[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_ncr_bnGLM_crop.csv")
+write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_NCR_bnGLMM_crop.csv")
+write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_NCR_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -270,8 +272,10 @@ colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
 colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
 
-# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_ncr_bnGLM_crop.csv")
-# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_ncr_bnGLM_crop.csv")
+write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_NCR_bnGLMM_crop.csv")
+write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_NCR_bnGLMM_crop.csv")
+write.table(df.posthoc, file="Results/ANOVATables/FpR2_NCR_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+write.table(df.posthoc2, file="Results/ANOVATables/FpR2_NCR_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -69,7 +69,7 @@ indices.backup <- indices
 indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
 
 explanatory <- c("age_class", "samcam", "age_class:samcam")
-q <- length(explanatory)
+q <- length(explanatory)+1
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -201,12 +201,12 @@ for(i in 1:p) {
   name <- paste("fety",i,names(df.response1)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
-  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
+  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="III")$"Chisq",2)
+  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="III")$"Pr(>Chisq)",3)
   # afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|field.ID), family=binomial, indices2,method = "LRT")
 }
-df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
-df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model, type="III"))
+df.Fpvalue[2:(1+q),2]  <- Anova(model, type="III")$"Df"
 
 
 mod.names <- c(1:p)
@@ -229,12 +229,14 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("binomial", 2*p)))
 
-# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_Fety_bnGLMM.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Fety_bnGLMM.csv")
+#write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Fety_bnGLMMT2.csv")
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Fety_bnGLMMT3.csv")
+# write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_Fety_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
+df.FpvalueR2.1[2:(1+q),] <- "NA"
 
 for(i in 1:p){
   
@@ -243,11 +245,13 @@ for(i in 1:p){
   indices2$fail <- indices2[,"N"] - df.response1[outlier[[i]],i]
   indices2$pct <- df.response1[outlier[[i]],i]/indices2[,"N"]
   obj.afex <- afex::mixed(cbind(scs,fail) ~ age_class*samcam  + (1|ID) + (1|field.ID), family=binomial, indices2,  method="LRT") 
-  df.FpvalueR2[2:(1+q),2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
-  df.FpvalueR2[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+  df.FpvalueR2.1[2:(1+q),2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM.csv")
+#write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM.csv")
+#write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Fety_bnGLMM2.csv")
+#write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_Fety_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 # PS: Due to a bug in the current CRAN version of stringi the following 
 # warning message appears regularly in afex, but can be safely ignored:
@@ -343,10 +347,13 @@ for (i in 1:p) {
 df.posthocSC[,1] <- paste(xx$"contrast")
 df.posthocSC[,2] <- paste(xx$"age_class")
 
-#  save(list=c("ls.models","ls.lsm", "df.FpvalueR2", "df.posthoc", "df.posthocAC", "df.posthocSC"), file="Results/ANOVATables/Fety_bnGLMM.rda")
+# save(list=c("ls.models","ls.lsm", "ls.lsmAC", "ls.lsmSC",  "df.FpvalueR2", "df.posthoc", "df.posthocAC", "df.posthocSC"), file="Results/ANOVATables/Fety_bnGLMM.rda")
 # write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Fety_bnGLMM.csv")
 # write.csv(df.posthocAC, file="Results/ANOVATables/PostHocAC_Fety_bnGLMM.csv")
 # write.csv(df.posthocSC, file="Results/ANOVATables/PostHocSC_Fety_bnGLMM.csv")
+# write.table(df.posthoc, file="Results/ANOVATables/FpR2_Fety_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.table(df.posthocAC, file="Results/ANOVATables/FpR2_Fety_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.table(df.posthocSC, file="Results/ANOVATables/FpR2_Fety_bnGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

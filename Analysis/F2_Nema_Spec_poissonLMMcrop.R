@@ -254,17 +254,34 @@ df.rsquared <- matrix(NA,2,2+2*p)
 df.rsquared[1:2,1] <- c("R2m", "R2c")
 
 for(i in 1:p) {
-  df.rsquared[,2+2*i] <- round(piecewiseSEM::sem.model.fits(ls.models[[i]])[4],3)[[1]]
+  df.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ls.models[[i]]),2)
 }
 colnames(df.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 
 
 # Summary *******************************************************************************
 
-df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("nbinom", 2*p)))
+df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("poisson", 2*p)))
 
-# save("df.FpvalueR2", file="Results/ANOVATables/FpR2_spec_psGLMM_crop.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM_crop.csv")
+# save(list=c("df.FpvalueR2"), file="Results/ANOVATables/FpR2_Spec_psGLMM_crop.rda")
+write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMM_crop.csv")
+write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+
+# p-values with afex ********************************************************************
+df.FpvalueR2.1 <- df.FpvalueR2 
+df.FpvalueR2.1[2:(1+q),] <- "NA"
+
+for(i in 1:p){
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- df.response[outlier[[i]],i]
+  obj.afex <- afex::mixed(y ~ age_class  + (1|ID), family="poisson",  indices2,  method="LRT") 
+  df.FpvalueR2.1[2:(1+q),2+(i*2)-1] <- round(obj.afex[[1]]$"Chisq",2)
+  df.FpvalueR2.1[2:(1+q),2+((i*2))] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
+}
+df.FpvalueR2.1[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
+
+write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Spec_psGLMM_crop.csv")
+write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -312,8 +329,10 @@ colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
 colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
 
-# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_spec_psGLM_crop.csv")
-# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_spec_psGLM_crop.csv")
+write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_Spec_psGLMM_crop.csv")
+write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_Spec_psGLMM_crop.csv")
+write.table(df.posthoc, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+write.table(df.posthoc2, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

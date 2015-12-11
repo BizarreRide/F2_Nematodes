@@ -69,7 +69,7 @@ indices.backup <- indices
 indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
 
 explanatory <- c("age_class", "samcam", "age_class:samcam") # include "intercept" when using Anova type III
-q <- length(explanatory)
+q <- length(explanatory)#+1
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -270,8 +270,8 @@ for(i in 1:p) {
   df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
   df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
 }
-df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
-df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model, type="II"))
+df.Fpvalue[2:(1+q),2]  <- Anova(model, type="II")$"Df"
 
 
 mod.names <- c(1:p)
@@ -288,8 +288,9 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("normal", 2*p)))
 
-# save(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM.rda")
-# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM.csv")
+#write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMMT2.csv")
+write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMMT3.csv")
+write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
@@ -304,7 +305,9 @@ for(i in 1:p){
 }
 df.FpvalueR2.1[1,] <- c("X", "X", rep(c("KR-F", "p-value"),p))
 
-# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Indi_LMM.csv")
+write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Indi_LMM.csv")
+write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Indi_LMM2.csv")
+write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -351,35 +354,59 @@ df.posthoc[,2] <- paste(x$"samcam")
 colnames(df.posthoc) <- c("Factor1", "Factor1", rep(colnames(df.response1),each=2))
 df.posthoc <- rbind(c("age_class", "samcam", rep(c("lsmean", "group"), p)), df.posthoc)
 
-#  save(list=c("ls.models","ls.lsm", "df.FpvalueR2", "df.posthoc"), file="Results/ANOVATables/Indi_LMM.rda")
-# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Indi_LMM.csv")
 #************************************************************************
 
 
 ls.lsmAC <- list()
+df.posthocAC <- matrix(NA,12,2+(2*p))
+colnames(df.posthocAC) <- c("contrast", "samcam", rep(colnames(df.response1),each=2))
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam)
+  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam, at=list(samcam=c("2","4")))
   x <- contrast(lsm, "pairwise" , type = "response")
   print(x)
+  xx <- summary(x)
+  df.posthocAC[,2+((2*i)-1)] <- round(xx$"estimate",2)
+  df.posthocAC[,2+((2*i)-0)] <- round(xx$"p.value",3)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   ls.lsmAC[[i]] <- assign(name, lsm)
 }
+
+df.posthocAC[,1] <- paste(xx$"contrast")
+df.posthocAC[,2] <- paste(xx$"samcam")
+
 
 #************************************************************************
 
 
 ls.lsmSC <- list()
+df.posthocSC <- matrix(NA,4,2+(2*p))
+colnames(df.posthocSC) <- c("contrast", "age_class", rep(colnames(df.response1),each=2))
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
   lsm <- lsmeans(ls.models[[i]], pairwise ~ samcam|age_class)
   x <- contrast(lsm, "pairwise" , type = "response")
   print(x)
+  xx <- summary(x)
+  df.posthocSC[,2+((2*i)-1)] <- round(xx$"estimate",2)
+  df.posthocSC[,2+((2*i)-0)] <- round(xx$"p.value",3)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   ls.lsmSC[[i]] <- assign(name, lsm)
 }
+
+df.posthocSC[,1] <- paste(xx$"contrast")
+df.posthocSC[,2] <- paste(xx$"age_class")
+
+save(list=c("ls.models","ls.lsm", "ls.lsmAC", "ls.lsmSC",  "df.FpvalueR2", "df.posthoc", "df.posthocAC", "df.posthocSC"), file="Results/ANOVATables/Indi_LMM.rda")
+write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Indi_LMM.csv")
+write.csv(df.posthocAC, file="Results/ANOVATables/PostHocAC_Indi_LMM.csv")
+write.csv(df.posthocSC, file="Results/ANOVATables/PostHocSC_Indi_LMM.csv")
+write.table(df.posthoc, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+write.table(df.posthocAC, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+write.table(df.posthocSC, file="Results/ANOVATables/FpR2_Indi_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -388,7 +415,7 @@ for (i in 1:p) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for(k in 1:p){ 
-  # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="III")))
+  # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="II")))
   #corvif(ls.models[[k]])
   
   E1 <- resid(ls.models[[k]], type="pearson")

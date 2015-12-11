@@ -76,11 +76,7 @@ q <- length(explanatory)
 # 1. Analysis Zof FeedingTypes ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-<<<<<<< HEAD
-df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Rhabditidae", "Aphelenchoididae", "Panagrolaimidae", "Aporcelaimidae")],0)
-=======
-df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Aphelenchoididae", "Rhabditidae", "Aporcelaimidae",  "Panagrolaimidae")],0)
->>>>>>> 54ccc836eed9100f40938e12eb66c78b879e1d10
+df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Rhabditidae", "Aphelenchoididae")],0)
 df.response1 <- df.response1[!indices.backup$age_class%in% "A_Cm",]
 
 p <- ncol(df.response1)
@@ -146,21 +142,11 @@ outlier <- list(spec.Tyli <- -5,
                 spec.Hop <- -c(23,13),
                 spec.Cph <- 1:24,
                 spec.Plec <- -11,
-<<<<<<< HEAD
                 spec.Telo <- 1:24,
                 spec.Rha <- -12,
                 spec.Aphdd <- -10,
                 spec.Pan <- 1:24, #-8,
                 spec.Apc <- 1:24) #-c(22,20))
-=======
-                spec.Telo <- -c(24,9),
-                spec.Aphd <- -c(15,10),
-                spec.Rha <- -c(21,12),
-                spec.Apo <- -c(22,20),
-                spec.Pan <- -8)
-              
->>>>>>> 54ccc836eed9100f40938e12eb66c78b879e1d10
-
 
 # change factor properties
 indices$age_class2 <- indices$age_class
@@ -242,8 +228,8 @@ for(i in 1:p) {
   df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)[1:3]
   df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)[1:3]
 }
-df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model))
-df.Fpvalue[2:(1+q),2]  <- Anova(model)$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model, type="II"))[1:3]
+df.Fpvalue[2:(1+q),2]  <- Anova(model, type="II")$"Df"[1:3]
 
 # Only The Plectidae-Model is not overdispersed
 
@@ -272,10 +258,14 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("NegBin", 2*p)))
 df.FpvalueR2.1 <- df.FpvalueR2 
 df.FpvalueR2[2:(1+q),] <- "NA"
 
+require(parallel)
+cl <- makeCluster(rep("localhost", 4))
+control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))
+
 for(i in c(1:2,4:p)){
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
-  obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|field.ID), family=negative.binomial(theta=lme4:::getNBdisp(ls.models[[i]])), indices2,  method="LRT") 
+  obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|field.ID), family=negative.binomial(theta=(ls.models[[i]][["alpha"]])), indices2,  method="LRT") #(theta=lme4:::getNBdisp(ls.models[[i]]))
   df.FpvalueR2[2:(1+q),2+((i*2)-1)] <- round(obj.afex[[1]]$"Chisq",2)
   df.FpvalueR2[2:(1+q),2+(i*2)] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
