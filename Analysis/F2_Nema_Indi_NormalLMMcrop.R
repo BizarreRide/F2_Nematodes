@@ -131,6 +131,7 @@ for(i in 1:p) {
       oma = c(0,0,2,0))
   indices$y <- df.response[,i]
   car::Boxplot(indices$y ~ indices$crop)
+  car::Boxplot(indices$y ~ indices$age_class)
   title(names(df.response)[i],outer=TRUE)
 }
 
