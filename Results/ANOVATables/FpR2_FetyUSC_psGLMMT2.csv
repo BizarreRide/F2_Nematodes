@@ -1,8 +1,0 @@
-"","Env","DF","fungivores","fungivores","bacterivores","bacterivores","carnivores","carnivores","omnivores","omnivores","Tylenchidae","Tylenchidae","herbivores","herbivores","herbivores2","herbivores2","fungivores2","fungivores2"
-"1","X","X","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value"
-"2","age_class","3","4.78","0.189","3.22","0.36","0.62","0.892","1.45","0.695","2.41","0.491","9.75","0.021","17.93","0","4.28","0.233"
-"3","samcam","1","0.18","0.668","2.5","0.114","11.04","0.001","0.76","0.385","0.73","0.393","1.12","0.29","1.65","0.199","0.06","0.804"
-"4","age_class:samcam","3","7.73","0.052","26.66","0","2.77","0.428","10.96","0.012","4.58","0.205","0.7","0.873","13.65","0.003","14.67","0.002"
-"5","R2m",NA,NA,"0.36",NA,"0.47",NA,"0.4",NA,"0.23",NA,"0.23",NA,"0.43",NA,"0.6",NA,"0.35"
-"6","R2c",NA,NA,"0.65",NA,"0.75",NA,"0.59",NA,"0.78",NA,"0.68",NA,"0.85",NA,"0.86",NA,"0.77"
-"7","X","X","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson","poisson"

@@ -209,11 +209,14 @@ for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
   model <- glmer(y ~ age_class*samcam  + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+#   model2 <- glmer(y ~ age_class+samcam  + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+#   model3 <- glmer(y ~ age_class  + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+#   model4 <- glmer(y ~ samcam  + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   # model <- glmmadmb(y ~ age_class*samcam  + (1|field.ID), family="poisson", indices2)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
-  # Overdispersion ####
+  # Overdispersion 
   E1 <- resid(model, type="pearson")
   N <- nrow(df.response1)
   b <- length(coef(model)) +1 # +1 in case of negbin
@@ -243,6 +246,7 @@ for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
   df.rsquared[,2+2*i] <- round(MuMIn::r.squaredGLMM(ls.models[[i]]),2)
+  print(MuMIn::r.squaredGLMM(ls.models[[i]]))
 }
 
 colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
@@ -252,6 +256,14 @@ df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("poisson", 2*p)))
 #save(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM.rda")
 #write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_spec_psGLMM.csv")
 
+# lmerTest::anova(model, model2, test="Chisq")
+# lmerTest::anova(model2, model3, test="Chisq")
+# lmerTest::anova(model3, model4, test="Chisq")
+# lmerTest::anova(model, model2, model3, model4, test="Chisq")
+# lmerTest::anova(model, ddf="Chisq")
+# anova(model)
+# drop1(model, test="Chi")
+
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
 df.FpvalueR2.1[2:(1+q),] <- "NA"
@@ -259,14 +271,13 @@ df.FpvalueR2.1[2:(1+q),] <- "NA"
 for(i in 1:p){
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
-  obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|field.ID), family=poisson, indices2,  method="LRT") 
+  obj.afex <- afex::mixed(y ~ age_class*samcam  + (1|field.ID), family=poisson, indices2,  method="LRT",) 
   df.FpvalueR2.1[2:(1+q),2+((i*2)-1)] <- round(obj.afex[[1]]$"Chisq",2)
   df.FpvalueR2.1[2:(1+q),2+(i*2)] <- round(obj.afex[[1]]$"Pr(>Chisq)",3)
 }
 df.FpvalueR2.1[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
 #write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_spec_psGLMM.csv")
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -313,65 +324,102 @@ df.posthoc[,2] <- paste(x$"samcam")
 colnames(df.posthoc) <- c("Factor1", "Factor1", rep(colnames(df.response1),each=2))
 df.posthoc <- rbind(c("age_class", "samcam", rep(c("rate", "group"), p)), df.posthoc)
 
-# save(list=c("ls.models","ls.lsm", "df.FpvalueR2", "df.posthoc"), file="Results/ANOVATables/Spec_psGLMM.rda")
-# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Spec_psGLMM.csv")
+
 #************************************************************************
 
 
 ls.lsmAC <- list()
+df.posthocAC <- matrix(NA,12,2+(2*p))
+colnames(df.posthocAC) <- c("contrast", "samcam", rep(colnames(df.response1),each=2))
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
-  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam)
+  lsm <- lsmeans(ls.models[[i]],  ~ age_class|samcam, at=list(samcam=c("2","4")))
   x <- contrast(lsm, "pairwise" , type = "response")
   print(x)
+  xx <- summary(x)
+  df.posthocAC[,2+((2*i)-1)] <- round(xx$"estimate",2)
+  df.posthocAC[,2+((2*i)-0)] <- round(xx$"p.value",3)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   ls.lsmAC[[i]] <- assign(name, lsm)
 }
+
+df.posthocAC[,1] <- paste(xx$"contrast")
+df.posthocAC[,2] <- paste(xx$"samcam")
+
 
 #************************************************************************
 
 
 ls.lsmSC <- list()
+df.posthocSC <- matrix(NA,4,2+(2*p))
+colnames(df.posthocSC) <- c("contrast", "age_class", rep(colnames(df.response1),each=2))
 
 for (i in 1:p) {
   # get the results on a back transformed scale:
   lsm <- lsmeans(ls.models[[i]], pairwise ~ samcam|age_class)
   x <- contrast(lsm, "pairwise" , type = "response")
   print(x)
+  xx <- summary(x)
+  df.posthocSC[,2+((2*i)-1)] <- round(xx$"estimate",2)
+  df.posthocSC[,2+((2*i)-0)] <- round(xx$"p.value",3)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   ls.lsmSC[[i]] <- assign(name, lsm)
 }
+
+df.posthocSC[,1] <- paste(xx$"contrast")
+df.posthocSC[,2] <- paste(xx$"age_class")
+
+# save(list=c("ls.models","ls.lsm", "ls.lsmAC", "ls.lsmSC",  "df.FpvalueR2", "df.posthoc", "df.posthocAC", "df.posthocSC"), file="Results/ANOVATables/Spec_psGLMM.rda")
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Spec_psGLMM.csv")
+# write.csv(df.posthocAC, file="Results/ANOVATables/PostHocAC_Spec_psGLMM.csv")
+# write.csv(df.posthocSC, file="Results/ANOVATables/PostHocSC_Spec_psGLMM.csv")
+# write.table(df.posthoc, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.table(df.posthocAC, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.table(df.posthocSC, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 ### poisson GLMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+windows(record=TRUE)
+
 for(k in 1:p){ 
-  # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="III")))
+  # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="II")))
   #corvif(ls.models[[k]])
   
   E1 <- resid(ls.models[[k]], type="pearson")
   E2 <- resid(ls.models[[k]], type="response")
+  E3 <- residuals(ls.models[[k]], type="deviance")
   F1 <- fitted(ls.models[[k]], type="response")
   P1 <- predict(ls.models[[k]], type="response")
   
-  par(mfrow=c(2,2),
+  
+  
+  
+  par(mfrow=c(2,3),
       mar=c(4,4.5,1,2),
       oma=c(0,0,2,0)
   )
   # Plot fitted vs. residuals
-  scatter.smooth(F1, E1, cex.lab = 1.5, xlab="Fitted values", ylab=" Residuals")
+  scatter.smooth(F1, E1, cex.lab = 1.5, xlab="Fitted values", ylab=" Pearson Residuals")
   abline(h = 0, v=0, lty=2)
+  scatter.smooth(F1, E2, cex.lab = 1.5, xlab="Fitted values", ylab=" Residuals")
+  abline(h = 0, v=0, lty=2)
+  
   
   # plot predicted vs. residuals
-  scatter.smooth(P1, E1, cex.lab = 1.5, xlab="Predicted values", ylab=" Residuals")
+  scatter.smooth(log(predict(ls.models[[k]])), E3, cex.lab = 1.5, xlab="Log Predicted values", ylab="deviance residuals")
   abline(h = 0, v=0, lty=2)
+  #   scatter.smooth(log(predict(ls.models[[k]])), E2, cex.lab = 1.5, xlab="Predicted values", ylab=" Residuals")
+  #   abline(h = 0, v=0, lty=2)
+  
   
   # plot fitted vs. predicted
-  #scatter.smooth(F1, P1, cex.lab = 1.5, xlab="Fitted values", ylab="Predicted")
-  abline(h = 0, v=0, lty=2)
+  #   scatter.smooth(F1, P1, cex.lab = 1.5, xlab="Fitted values", ylab="Predicted")
+  #   abline(h = 0, v=0, lty=2)
   
   # Histogram of Residuals
   hist(E1, prob=TRUE, main = "", breaks = 20, cex.lab = 1.5, xlab = "Response Residuals", col="PapayaWhip")
@@ -384,6 +432,12 @@ for(k in 1:p){
   qqnorm(E2)
   qqline(E2)
   
+  
+  qqnorm(E3)
+  qqline(E3) #large residuals and a substantial deviance of the deviance residuals from the normal (all speaking against the Poisson):
+}
+##### 
+
   # plot age_class vs. residuals
   boxplot(E1 ~ indices$age_class[outlier[[k]]], cex.lab = 1.5, xlab="age_class", ylab="Residuals")
   
@@ -395,6 +449,7 @@ for(k in 1:p){
   
   title(names(ls.models)[k], outer=TRUE)
   
+  
   indices$y <- df.response1[,k]
   
   par(mfrow=c(1,1))
@@ -404,7 +459,7 @@ for(k in 1:p){
   
   title(names(ls.models)[k], outer=TRUE)
   
-}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

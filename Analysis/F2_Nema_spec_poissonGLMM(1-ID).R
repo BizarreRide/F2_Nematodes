@@ -69,7 +69,7 @@ indices.backup <- indices
 indices <- droplevels(indices.backup[!indices.backup$age_class %in% "A_Cm",])
 
 explanatory <- c("age_class", "samcam", "age_class:samcam") # include "intercept" when using Anova type III
-q <- length(explanatory)+1
+q <- length(explanatory)#+1
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -78,6 +78,9 @@ q <- length(explanatory)+1
 
 df.response1 <- round(fam.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Rhabditidae", "Aporcelaimidae", "Aphelenchoididae", "Panagrolaimidae")],0)
 df.response1 <- df.response1[!indices.backup$age_class%in% "A_Cm",]
+
+biodiv <- biodiv.fun(round(fam.usc,0))
+df.response1$N <- biodiv$N[!indices.backup$age_class%in% "A_Cm"]
 
 p <- ncol(df.response1)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -146,7 +149,8 @@ outlier <- list(spec.Tyli <- -5,
                 spec.Rha <- -12,
                 spec.Apc <- -c(22,20),
                 spec.Aphdd <- -10,
-                spec.Pan <- -8)
+                spec.Pan <- -8,
+                nema.N <- 1:24)
 
 
 # change factor properties
@@ -211,11 +215,12 @@ for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
   indices2$y <- df.response1[outlier[[i]],i]
   model <- glmer(y ~ age_class*samcam  + (1|ID) + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  #model <- glmmadmb(y ~ age_class*samcam  + (1|field.ID), family="poisson", indices2, zeroInflation=T, save.dir="tmp")
   # model <- glmmadmb(y ~ age_class*samcam  + (1|ID) + (1|field.ID), family="poisson", indices2)
   # I set REML to FALSE since m random factors are nested and i have only one random factor, and the data are balanced
   # if it is "disregarded in glmer() it is OK
   print(summary(model))
-  # Overdispersion ####
+  # Overdispersion 
   E1 <- resid(model, type="pearson")
   N <- nrow(df.response1)
   b <- length(coef(model)) +1 # +1 in case of negbin
@@ -225,11 +230,11 @@ for(i in 1:p) {
   name <- paste("spec",i,names(df.response1)[i], sep = ".")
   assign(name, model)
   ls.models[[i]] <- assign(name, model)
-  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="III")$"Chisq",2)
-  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="III")$"Pr(>Chisq)",3)
+  df.Fpvalue[2:(1+q),2+((i*2)-1)] <- round(car::Anova(model, type="II")$"Chisq",2)
+  df.Fpvalue[2:(1+q),2+(i*2)] <- round(car::Anova(model, type="II")$"Pr(>Chisq)",3)
 }
-df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model, type="III"))
-df.Fpvalue[2:(1+q),2]  <- Anova(model, type="III")$"Df"
+df.Fpvalue[2:(1+q),1]  <- row.names(Anova(model, type="II"))
+df.Fpvalue[2:(1+q),2]  <- Anova(model, type="II")$"Df"
 
 
 mod.names <- c(1:p)
@@ -251,8 +256,8 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(df.response1)[1:p],each=2))
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("poisson", 2*p)))
 
 # write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMMT2.csv")
- write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMMT3.csv")
- write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+#  write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMMT3.csv")
+#   write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
@@ -267,13 +272,39 @@ for(i in 1:p){
 }
 df.FpvalueR2.1[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
+# model <- glmer(y ~ age_class*samcam  + (1|ID) + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# model2 <- glmer(y ~ age_class + samcam + (1|ID) + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# model3 <- glmer(y ~ age_class  +  samcam:age_class + (1|ID) + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# model4 <- glmer(y ~ samcam + samcam:age_class + (1|ID) + (1|field.ID), family=poisson(link="log"), indices2, control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
+# anova(model, model2, model3, model4)
 
-write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Spec_psGLMM.csv")
-write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Spec_psGLMM2.csv")
-write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Spec_psGLMM.csv")
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Spec_psGLMM2.csv")
+#  write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+# Check for zero inflation
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+indices$ID <- as.factor(indices$ID)
+
+library(glmmADMB)
+for(i in 1:p) {
+  indices2 <- indices[outlier[[i]],]
+  indices2$y <- df.response1[outlier[[i]],i] # sclale()
+  m1 <- glmmadmb(y ~ age_class*samcam   + (1|field.ID), family="Poisson", indices2, save.dir="tmp")#, admb.opts=admbControl(shess=FALSE,noinit=FALSE, impSamp=200,maxfn=1000,imaxfn=500,maxph=5))
+  zip1 <- glmmadmb(y ~ age_class*samcam  + (1|field.ID), family="poisson", indices2, zeroInflation=T, save.dir="tmp") #,admb.opts=admbControl(shess=FALSE,noinit=FALSE, impSamp=200,maxfn=1000,imaxfn=500,maxph=5))
+  print(AIC(m1, zip1))
+  # model <- glmmadmb(y ~ age_class*samcam  + (1|ID) + (1|field.ID), family="poisson", indices2)
+  summary(m1)
+  aov(m1)
+}
+
+
+model <- glmmadmb(y ~ age_class + samcam +age_class:samcam  + (1|field.ID), family="Poisson", indices2)
 
 # Post Hoc data inspection with lsmeans package ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -363,13 +394,13 @@ for (i in 1:p) {
 df.posthocSC[,1] <- paste(xx$"contrast")
 df.posthocSC[,2] <- paste(xx$"age_class")
 
-save(list=c("ls.models","ls.lsm", "ls.lsmAC", "ls.lsmSC",  "df.FpvalueR2", "df.posthoc", "df.posthocAC", "df.posthocSC"), file="Results/ANOVATables/Spec_psGLMM.rda")
-write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Spec_psGLMM.csv")
-write.csv(df.posthocAC, file="Results/ANOVATables/PostHocAC_Spec_psGLMM.csv")
-write.csv(df.posthocSC, file="Results/ANOVATables/PostHocSC_Spec_psGLMM.csv")
-write.table(df.posthoc, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
-write.table(df.posthocAC, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
-write.table(df.posthocSC, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# save(list=c("ls.models","ls.lsm", "ls.lsmAC", "ls.lsmSC",  "df.FpvalueR2", "df.posthoc", "df.posthocAC", "df.posthocSC"), file="Results/ANOVATables/Spec_psGLMM.rda")
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHoc_Spec_psGLMM.csv")
+# write.csv(df.posthocAC, file="Results/ANOVATables/PostHocAC_Spec_psGLMM.csv")
+# write.csv(df.posthocSC, file="Results/ANOVATables/PostHocSC_Spec_psGLMM.csv")
+# write.table(df.posthoc, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.table(df.posthocAC, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.table(df.posthocSC, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -377,30 +408,42 @@ write.table(df.posthocSC, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", appen
 ### poisson GLMM - Model Validation ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+windows(record=TRUE)
+
 for(k in 1:p){ 
-  # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="III")))
+  # print(list(summary(ls.models[[k]]),Anova(ls.models[[k]], type="II")))
   #corvif(ls.models[[k]])
   
   E1 <- resid(ls.models[[k]], type="pearson")
   E2 <- resid(ls.models[[k]], type="response")
+  E3 <- residuals(ls.models[[k]], type="deviance")
   F1 <- fitted(ls.models[[k]], type="response")
   P1 <- predict(ls.models[[k]], type="response")
   
-  par(mfrow=c(2,2),
+  
+  
+  
+  par(mfrow=c(2,3),
       mar=c(4,4.5,1,2),
       oma=c(0,0,2,0)
   )
   # Plot fitted vs. residuals
   scatter.smooth(F1, E1, cex.lab = 1.5, xlab="Fitted values", ylab=" Residuals")
   abline(h = 0, v=0, lty=2)
+  scatter.smooth(F1, E2, cex.lab = 1.5, xlab="Fitted values", ylab=" Residuals")
+  abline(h = 0, v=0, lty=2)
+  
   
   # plot predicted vs. residuals
-  scatter.smooth(P1, E1, cex.lab = 1.5, xlab="Predicted values", ylab=" Residuals")
+  scatter.smooth(log(predict(ls.models[[k]])), E1, cex.lab = 1.5, xlab="Predicted values", ylab=" Residuals")
   abline(h = 0, v=0, lty=2)
+  #   scatter.smooth(log(predict(ls.models[[k]])), E2, cex.lab = 1.5, xlab="Predicted values", ylab=" Residuals")
+  #   abline(h = 0, v=0, lty=2)
+  
   
   # plot fitted vs. predicted
-  #scatter.smooth(F1, P1, cex.lab = 1.5, xlab="Fitted values", ylab="Predicted")
-  abline(h = 0, v=0, lty=2)
+  #   scatter.smooth(F1, P1, cex.lab = 1.5, xlab="Fitted values", ylab="Predicted")
+  #   abline(h = 0, v=0, lty=2)
   
   # Histogram of Residuals
   hist(E1, prob=TRUE, main = "", breaks = 20, cex.lab = 1.5, xlab = "Response Residuals", col="PapayaWhip")
@@ -413,6 +456,11 @@ for(k in 1:p){
   qqnorm(E2)
   qqline(E2)
   
+  
+  qqnorm(E3)
+  qqline(E3)
+}
+#####
   # plot age_class vs. residuals
   boxplot(E1 ~ indices$age_class[outlier[[k]]], cex.lab = 1.5, xlab="age_class", ylab="Residuals")
   

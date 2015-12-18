@@ -1,6 +1,0 @@
-"","Env","DF","fungivores","fungivores","bacterivores","bacterivores","carnivores","carnivores","omnivores","omnivores","Tylenchidae","Tylenchidae","herbivores","herbivores","herbivores2","herbivores2","fungivores2","fungivores2"
-"1","X","X","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value","CHI2","p-value"
-"2","age_class","4","75.05","0","19.74","0.001","27.4","0","21.02","0","24.86","0","43.15","0","181.53","0","51.32","0"
-"3","R2m",NA,NA,"0.83",NA,"0.55",NA,"0.73",NA,"0.57",NA,"0.61",NA,"0.73",NA,"0.92",NA,"0.77"
-"4","R2c",NA,NA,"0.83",NA,"0.55",NA,"0.73",NA,"0.57",NA,"0.61",NA,"0.73",NA,"0.92",NA,"0.77"
-"5","X","X","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial","binomial"

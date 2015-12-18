@@ -75,6 +75,8 @@ q <- length(explanatory)
 fam.av.usc <- (fam.av/rowSums(fam.av))*counts.av$counts
 df.response <- round(fam.av.usc[,c("Tylenchidae", "Aphelenchidae", "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Rhabditidae", "Aporcelaimidae", "Aphelenchoididae", "Panagrolaimidae")],0)
 
+biodiv <- biodiv.fun(round(fam.av.usc,0))
+df.response$N <- biodiv$N
 
 p <- ncol(df.response)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -155,7 +157,8 @@ outlier <- list(spec.Tyl <- -c(15,5),
                 spec.Rha <- -8,
                 spec.Apc <- -15,
                 spec.Aphdd <- -15,
-                spec.Pan <- -8)
+                spec.Pan <- -8,
+                nema.N <- -15)
                 
 
 
@@ -264,8 +267,8 @@ colnames(df.rsquared) <- c("X", "X", rep(colnames(nema)[1:p],each=2))
 df.FpvalueR2 <- rbind(df.Fpvalue, df.rsquared, c("X", "X", rep("poisson", 2*p)))
 
 # save(list=c("df.FpvalueR2"), file="Results/ANOVATables/FpR2_Spec_psGLMM_crop.rda")
-write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMM_crop.csv")
-write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.csv(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMM_crop.csv")
+# write.table(df.FpvalueR2, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 # p-values with afex ********************************************************************
 df.FpvalueR2.1 <- df.FpvalueR2 
@@ -280,8 +283,8 @@ for(i in 1:p){
 }
 df.FpvalueR2.1[1,] <- c("X", "X", rep(c("Chisq", "p-value"),p))
 
-write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Spec_psGLMM_crop.csv")
-write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.csv(df.FpvalueR2.1, file="Results/ANOVATables/FpR2afex_Spec_psGLMM_crop.csv")
+# write.table(df.FpvalueR2.1, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -329,10 +332,10 @@ colnames(df.posthoc) <- c("Contrast", rep(c("estimate", "p-value"), p))
 colnames(df.posthoc2) <- c("Contrast", rep(c("estimate", "p-value"), p))
 
 
-write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_Spec_psGLMM_crop.csv")
-write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_Spec_psGLMM_crop.csv")
-write.table(df.posthoc, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
-write.table(df.posthoc2, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.csv(df.posthoc, file="Results/ANOVATables/PostHocC_Spec_psGLMM_crop.csv")
+# write.csv(df.posthoc2, file="Results/ANOVATables/PostHocAC_Spec_psGLMM_crop.csv")
+# write.table(df.posthoc, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
+# write.table(df.posthoc2, file="Results/ANOVATables/FpR2_Spec_psGLMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
