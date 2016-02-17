@@ -193,6 +193,10 @@ indices$samcam <- indices$samcam2
 str(indices)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+# Global Models
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 # for (i in 1:ncol(df.responseX)) {
 #   v1[i] <- c(paste("glbM",i,abbreviate(colnames(df.responseX),3)[i], " <- ", sep="."))
 # }
@@ -218,6 +222,44 @@ for ( i in 1:ncol(df.responseX)) {
     G1 <- glmer(fml.glb, family = "poisson", indices2, control = con)
   name <- c(paste("glbM",i,abbreviate(colnames(df.responseX),3)[i], sep="."))
   ls.glbModels[[i]] <- assign(name, G1)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+# Dredge Models # demo(dredge.subset) ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Generate Cluster ####
+library(parallel)
+clusterType <- if(length(find.package("snow", quiet = TRUE))) "SOCK" else "PSOCK"
+clust <- try(makeCluster(getOption("cl.cores", 4), type = clusterType))
+clusterEvalQ(clust, c(library("lme4")))
+#clusterExport(clust, varlist=c("dt.exp", "con"))
+
+# Subsets of models excluded from dredge: ####
+opo <- indices[,c("mc","pH","cnratio","ats1")]
+opo <- as.data.frame(opo)
+
+
+options(na.action = na.fail)
+
+library(MuMIn)
+options(na.action = na.fail)
+
+# Dredge Abundance ####
+p <- ncol(df.responseX)
+ls.dredge <- list()
+for(i in 1:p) {
+  indices$y <- df.responseX[,i]
+  indices2 <- indices[outlier[[i]],]
+#   dt.exp$y <- dt.rsp.abn[,i, with=F]
+  clusterExport(clust, varlist=c("indices2", "con"))
+  GM.dredge <- pdredge(ls.glbModels[[i]], cluster=clust)
+  #fixed=c("age_class", "samcam"),
+  name <- c(paste("Dredge",i,abbreviate(colnames(df.responseX),3)[i], sep="."))
+  assign(name, GM.dredge)
+  ls.dredge[[i]] <- assign(name, GM.dredge)
 }
 
 
