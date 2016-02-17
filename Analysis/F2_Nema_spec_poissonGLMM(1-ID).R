@@ -366,6 +366,7 @@ for (i in 1:p) {
   df.posthocAC[,2+((2*i)-0)] <- round(xx$"p.value",3)
   name <- paste("lsm",i,names(df.response1)[i], sep = ".")
   ls.lsmAC[[i]] <- assign(name, lsm)
+  print(plot(xx))
 }
 
 df.posthocAC[,1] <- paste(xx$"contrast")
@@ -589,7 +590,7 @@ for(i in 1:p) {
   test.list[[i]] <- assign(nam, testdata)
 }
 
-df.response1 <- spec.backup[!indices.backup$age_class %in% "A_Cm",-c(1:4)]
+df.response2 <- df.repsonse1[,-c(1:4)]
 df.response1$age_class <- indices$age_class
 
 for (i in 1:p) {
@@ -600,7 +601,7 @@ for (i in 1:p) {
           geom_errorbar(aes(x=as.numeric(age_class)+0.5, ymin = exp(lwr), ymax = exp(upr)),position = position_dodge(1),col="black",width=0.15, size=0.15) + 
           geom_boxplot(aes(y=response, fill=age_class), data=df.response1[outlier[[i]],]) +
           facet_grid(.~samcam) +
-          geom_hline(xintercept = 1, size=0.15) +
+          #geom_hline(intercept = 1, size=0.15) +
           ylab("Nematodes?") +
           xlab("Age Class") +
           scale_x_discrete(labels=c("Sp_Y", "Sp_I1", "Sp_I2", "Sp_O")) +

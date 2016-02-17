@@ -653,7 +653,7 @@ for (i in 1:p) {
           geom_bar(stat="identity",position = position_dodge(1), col="454545", size=0.15, fill="grey") +
           geom_errorbar(position = position_dodge(1),col="black",width=0.15, size=0.15) + 
           facet_grid(.~samcam) +
-          geom_hline(xintercept = 1, size=0.15) +
+          geom_hline(yintercept = 1, size=0.15) +
           ylab("Nematodes?") +
           xlab("Age Class") +
           scale_x_discrete(labels=c("Sp_Y", "Sp_I1", "Sp_I2", "Sp_O")) +
@@ -672,7 +672,7 @@ for (i in 1:p) {
           geom_errorbar(aes(x=as.numeric(age_class)+0.3, ymin = lwr, ymax = upr),position = position_dodge(1),col="black",width=0.15, size=0.15) + 
           geom_boxplot(aes(y=response), data=df.responseX[outlier[[i]],]) +
           facet_grid(.~samcam) +
-          geom_hline(xintercept = 1, size=0.15) +
+          geom_hline(yintercept = 1, size=0.15) +
           ylab("Nematodes?") +
           xlab("Age Class") +
           scale_x_discrete(labels=c("Sp_Y", "Sp_I1", "Sp_I2", "Sp_O")) +
