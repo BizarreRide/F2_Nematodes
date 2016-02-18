@@ -203,8 +203,8 @@ str(indices)
 
 ls.glbModels <- list()
 
-fml.glb <- as.formula(y ~ age_class*samcam + pH + cnratio + mc + ats1 + (1|field.ID))
-fml.glb.log <- as.formula(log1p(y) ~ age_class*samcam + pH + cnratio + mc + ats1 + (1|field.ID))
+fml.glb <- as.formula(y ~ age_class + samcam + age_class:samcam + (1|field.ID)) # + pH + cnratio + mc + ats1 
+fml.glb.log <- as.formula(log1p(y) ~ age_class + samcam + age_class:samcam + (1|field.ID)) #+ pH + cnratio + mc + ats1 
 
 con = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5), calc.derivs = TRUE, check.conv.grad="ignore")
 
@@ -262,4 +262,42 @@ for(i in 1:p) {
   ls.dredge[[i]] <- assign(name, GM.dredge)
 }
 
+
+# 1.a get the best models ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ls.bestmodels <- list()
+
+for ( i in 1:p) {
+  indices$y <- df.responseX[,i]
+  indices2 <- indices[outlier[[i]],]
+  #dt.exp$y <- dt.rsp[,i, with=F]
+  M.best <- get.models(ls.dredge[[i]], 1)[[1]]
+  name <- c(paste("BM",i,abbreviate(colnames(df.responseX),3)[i], sep="."))
+  assign(name, M.best)
+  ls.bestmodels[[i]] <- assign(name, M.best)
+  names(ls.bestmodels)[[i]] <- name
+}
+
+
+for ( i in 1:p) {
+  print(formula(ls.bestmodels[[i]]))
+}
+
+
+for ( i in 1:p) {
+  indices$y <- df.responseX[,i]
+  indices2 <- indices[outlier[[i]],]
+  print(drop1(ls.glbModels[[i]]))
+}
+
+step(ls.glbModels[[1]])
+
+df.compM2 <- vector()
+
+for(i in 1:p){
+  delta4 <- subset(ls.dredge[[i]], delta < 4)
+  df.compM <- data.frame(delta4)
+  df.compM[,ncol(df.compM)+1] <- rep(colnames(df.responseX)[i], length(rownames(df.compM)))
+  df.compM2 <- rbind(df.compM2, df.compM)
+}
 
