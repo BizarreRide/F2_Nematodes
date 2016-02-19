@@ -226,6 +226,26 @@ for ( i in 1:ncol(df.responseX)) {
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Post-Hoc
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+detach("package:lmerTest", unload=T)
+library(lsmeans)
+
+for (i in 1:p) {
+  print(colnames(df.responseX)[i])
+  lsmAC <- lsmeans(ls.glbModels[[i]], ~ age_class, contr= "cld")
+  x <- contrast(lsmAC, "pairwise" , type = "response"); print(x)
+  lsmSC <- lsmeans(ls.glbModels[[i]], ~ samcam, contr= "cld")
+  x <- contrast(lsmSC, "pairwise" , type = "response"); print(x) 
+  print(warnings())
+}
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
 
 # Dredge Models # demo(dredge.subset) ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -255,7 +275,7 @@ for(i in 1:p) {
   indices2 <- indices[outlier[[i]],]
 #   dt.exp$y <- dt.rsp.abn[,i, with=F]
   clusterExport(clust, varlist=c("indices2", "con"))
-  GM.dredge <- pdredge(ls.glbModels[[i]], cluster=clust)
+  GM.dredge <- pdredge(ls.glbModels[[i]], m.min=1 , cluster=clust)
   #fixed=c("age_class", "samcam"),
   name <- c(paste("Dredge",i,abbreviate(colnames(df.responseX),3)[i], sep="."))
   assign(name, GM.dredge)
@@ -280,9 +300,10 @@ for ( i in 1:p) {
 
 
 for ( i in 1:p) {
-  print(formula(ls.bestmodels[[i]]))
+   b[i] <- c(formula(ls.bestmodels[[i]]))
 }
-
+a <- colnames(df.responseX)
+cbind(a,paste(b))
 
 for ( i in 1:p) {
   indices$y <- df.responseX[,i]
@@ -300,4 +321,13 @@ for(i in 1:p){
   df.compM[,ncol(df.compM)+1] <- rep(colnames(df.responseX)[i], length(rownames(df.compM)))
   df.compM2 <- rbind(df.compM2, df.compM)
 }
+
+# Stay with the model
+# Test hypthesis
+# Aim for good model fit?
+# effect sizes?
+# build new models for post hoc
+# 
+
+
 
