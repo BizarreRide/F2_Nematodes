@@ -1,36 +1,37 @@
-BI	normal
-SI	normal
-EI	normal
-CI	lognormal
-MI	lognormal
-PPI	lognormal
-MI25	lognormal
-sigmaMI	normal
-sigmaMI25	normal
-PPI.1	lognormal
-SR	normal
-rarefy	normal
-H	normal
-D	normal
-J	normal
-H1	normal
-N	poisson
-fungivores	normal
-bacterivores	normal
-carnivores	poisson
-omnivores	normal
-Tylenchidae	normal
-herbivores	normal
-herbivores2	poisson
-fungivores2	poisson
-Tylenchidae	poisson
-Aphelenchidae	normal
-Hoplolaimidae	normal
-Cephalobidae	poisson
-Plectidae	normal
-Telotylenchidae	poisson
-Rhabditidae	poisson
-Aporcelaimidae	poisson
-Aphelenchoididae	poisson
-Panagrolaimidae	poisson
-NCR	binomial
+Response	Family_Dataadequate	ALL_normal	Family_pureDataadequate	Family_Residuals
+BI	normal	normal	normal	normal
+SI	normal	normal	normal	normal
+EI	normal	normal	normal	normal
+CI	lognormal	normal	normal	lognormal
+MI	lognormal	normal	normal	normal
+PPI	lognormal	normal	normal	normal
+MI25	lognormal	normal	normal	normal
+sigmaMI	normal	normal	normal	normal
+sigmaMI25	normal	normal	normal	normal
+PPI.1	lognormal	normal	normal	lognormal
+SR	normal	normal	poisson	normal
+rarefy	normal	normal	normal	normal
+H	normal	normal	normal	normal
+D	normal	normal	normal	normal
+J	normal	normal	normal	normal
+H1	normal	normal	normal	lognormal
+N	poisson	normal	poisson	normal
+fungivores	normal	normal	poisson	normal
+bacterivores	normal	normal	poisson	normal
+carnivores	poisson	normal	poisson	lognormal
+omnivores	normal	normal	poisson	lognormal
+Tylenchidae	normal	normal	poisson	normal
+herbivores	normal	normal	poisson	normal
+herbivores2	poisson	normal	poisson	lognormal
+fungivores2	poisson	normal	poisson	normal
+Tylenchidae	poisson	normal	poisson	normal
+Aphelenchidae	normal	normal	poisson	lognormal
+Hoplolaimidae	normal	normal	poisson	normal
+Cephalobidae	poisson	normal	poisson	normal
+Plectidae	normal	normal	poisson	lognormal
+Telotylenchidae	poisson	normal	poisson	lognormal
+Rhabditidae	poisson	normal	poisson	lognormal
+Aporcelaimidae	poisson	normal	poisson	lognormal
+Aphelenchoididae	poisson	normal	poisson	normal
+Panagrolaimidae	poisson	normal	poisson	normal
+NCR	binomial	binomial	normal	normal

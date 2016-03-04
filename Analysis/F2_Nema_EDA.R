@@ -332,3 +332,68 @@ plot(indices2$SI, indices2$EI)
 
 hefubac <- subset(fety, select = c("herbivore","fungivore","bacterivore")) 
 ade4::triangle.plot(hefubac)
+
+
+#***********************************************Circle Diagrams**********************************************************************####
+source("Analysis/Sources/RequiredPackages.R")
+source("Data/DataProcessing/DataProcessing.R") # Load original datasets nema, env, counts and define factors, etc.
+rm(counts.env,counts.org,counts3SC,env.org,nema) # remove unnecessary datasets
+
+source("Data/DataProcessing/EnvDataProcessing.R") # mainly slice and categorize, extract orthogonal variables in subset env.fin
+source("Data/DataProcessing/FamDatProcessing.R") # upscaled (counts * relative abundance in subset of 100 Ind.), presene absence data and bioiv indices on upscales data 
+biodiv <- biodiv.fun(round(fam.usc,0))
+
+source("Data/DataProcessing/AverageData.R") 
+fam.av.usc2 <- (fam.av.org/rowSums(fam.av.org))*counts.av$counts
+#????????????????
+
+
+# A Families without samcam,...
+# nee upscaled abundances....
+
+fam.av.usc1 <- round(fam.av.usc[,c("Psilenchidae", "Tylenchidae", "Criconematidae", "Telotylenchidae", "Hoplolaimidae", "Pratylenchidae")])
+                                #, "Hoplolaimidae", "Cephalobidae", "Plectidae", "Telotylenchidae", "Rhabditidae", "Aporcelaimidae", "Aphelenchoididae", "Panagrolaimidae")],0))
+
+df.fam <- cbind(age_class=env.av$age_class,
+                N=rowSums(round(fam.av.usc1,0)),
+                fam.av.usc1)
+
+nema3 <- aggregate(. ~ age_class, df.fam, mean)
+nema3 <- reshape2::melt(nema3, id.vars=c(1,2))
+
+require(ggplot2)
+Ne3 <- ggplot(nema3, aes(x=N/2, y = value, fill = variable, width = N)) +
+  geom_bar(position="fill", stat="identity", col="black") + 
+  facet_grid(.~ age_class) + 
+  coord_polar("y") + mytheme + theme(legend.position="bottom") 
+Ne3
+
+
+# B Feeding types
+
+data=fam.av.usc
+source("Data/DataProcessing/FeedingTypes.R") 
+colnames(fety)[2:10] <- c("herbivoresb","herbivoresc","herbivoresd","herbivorese","fungivores","bacterivores", "carnivores", "omnivores", "Tylenchidae")
+fety <- as.data.frame(fety[,-1])
+
+fety$herbivores <- rowSums(fety[,c(1,2,3,4)])
+fety$herbivores2 <- fety$herbivores + fety$Tylenchidae
+fety$fungivores2 <- fety$fungivores + fety$Tylenchidae
+
+df.fety <- round(fety[,-c(1:4,5,9,11)],0) # fungivores2
+df.fety <- round(fety[,-c(1:4,9,10,12)],0) # herbivores2
+df.fety <- round(fety[,-c(1:4,11,12)],0) # Tylenchidae
+df.fety <- cbind(age_class=env.av$age_class,
+                 N = rowSums(round(df.fety,0)),
+                 df.fety)
+
+nema3 <- aggregate(. ~ age_class, df.fety, mean)
+nema3 <- reshape2::melt(nema3, id.vars=c(1,2))
+
+require(ggplot2)
+Ne3 <- ggplot(nema3, aes(x=N/2, y = value, fill = variable, width = N)) +
+  geom_bar(position="fill", stat="identity") + 
+  facet_grid(.~ age_class) + 
+  coord_polar("y") + mytheme + theme(legend.position="bottom") 
+Ne3
+

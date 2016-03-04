@@ -15,18 +15,20 @@
 
 
 # Family proportions
-fam.rel <- round(data/rowSums(data),2)
+fam.rel <- round(fam.org/rowSums(fam.org),2)
 
 # Family proportions upscaled to total bundances (counts)
-fam.usc <- round(fam.rel*counts[15:45,"counts"],2)
+fam.usc <- round(fam.rel*counts[,"counts"],2)
 
 ## Selected families ####
-fam.pa <- decostand(data, "pa")
+fam.pa <- decostand(fam.org, "pa")
 # calculate sum per species
+
 fam.sum <- apply(fam.pa,2,sum)
 #sort(fam.sum)
 # remove species that occur at less than 5 sites
-fam.fin <- data[, !fam.sum<5]
+# fam.fin.org <- data[, !fam.sum<5]
+# fam.fin.usc <- data[, !fam.sum<5]
 rm(fam.sum)
 
 biodiv <- biodiv.fun(round(fam.usc,0))

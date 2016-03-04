@@ -6,19 +6,22 @@
 ###########################
 
 # Packages:
-library(vegan)
+#library(vegan)
 library(BiodiversityR)
 #library(faraway)
+library(reshape2)
 library(ggplot2)
 library(extrafont)
 #library(ggbiplot)
 library(multcomp)
-library(lme4)
 library(car)
-library(reshape2)
+library(lme4)
+library(lmerTest)
 library(dplyr)
 library(tidyr)
 library(grid)
+library(influence.ME)
+#library(MASS)
 
 # Functions:
 source("Analysis/sources/cleanplot.pca.R")
@@ -123,4 +126,21 @@ overdisp_fun <- function(model) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+asinTransform <- function(p) { asin(sqrt(p)) }
+
+dispersion_glmer<- function(modelglmer)
+{   
+  # computing  estimated scale  ( binomial model)
+  #following  D. Bates :
+  #That quantity is the square root of the penalized residual sum of
+  #squares divided by n, the number of observations, evaluated as:
+  
+  n <- length(modelglmer@resid)
+  
+  return(  sqrt( sum(c(modelglmer@resid, modelglmer@u) ^2) / n ) )
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

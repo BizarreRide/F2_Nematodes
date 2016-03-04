@@ -1,0 +1,70 @@
+
+
+
+1. Data Inspection....
+2. Outlier
+3. Global Models
+4. Model Validation
+5. Model selection (Dredge)
+6. Best Models
+7. Likelihood ratio test (ANOVA? Kenwards Rogers? Satthertwite?)
+8. Fixed Effects
+9. Random Effects
+10. Post Hoc Pairwise Comparison
+A, lsmeans: One given the other factor
+B. glht: complex  letter display
+
+11. Extract Information:
+A. p-values
+B. Confidence Intervals
+C. AIC
+D. Effect size
+
+
+
+1. Check normal models for outlier
+2. check if outlier elimination imporved the model
+3. check if poisson or lognormal is better suited
+4. Include all outlier in moels with changed distribution
+5. run models with new distribution
+6. check for outlier
+7. check if outlier elimination improved the model
+
+
+Problem1: quasipoisson1 does not work with afex
+Solution 1: do likelihoo ratio tests by hand
+
+
+# 01.03.2016
+
+Pairwise comparisons 
+Pairwise comparisons with compact letter display
+
+age neu definieren
+
+Alternative Modelle testen :
+y ~ age 
+y ~ ordered(age) * samcam
+y ~ ordered(age) * ordered(samcam)
+y ~ ordered(age) * nsamcam
+
+scatterplots with abline?
+boxplots for selected significant variables
+
+coefplots
+
+Save results
+
+qqnorm vs qqpoiss
+
+random effects valiudation
+
+
+
+
+
+
+
+
+
+
