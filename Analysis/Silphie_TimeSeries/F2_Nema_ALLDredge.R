@@ -33,7 +33,7 @@ env <- data.frame(ID = 1:nrow(env1),
                   cpl = env1$cpl,
                   samcam = env1$samcam,
                   nsamcam = as.numeric(factor(env1$samcam)),
-                  ACSC <- env1$ACSC,
+                  ACSC = env1$ACSC,
                   location=env1$location,
                   field.ID = env1$field.ID,
                   cnratio = env1$cn,
@@ -311,7 +311,7 @@ con2 = glmerControl(optimizer=c("bobyqa", "Nelder_Mead"),tolPwrss=1e-3)
 # Which families should be used?
 j=r+1 #!!!!!!!!!!!!!!!!!!!!!!!!!
 outlier <- outlier.bxplCook
-j=8
+j=3
 ls.glbModels <- list()
 
 for ( i in 1:ncol(df.rspX)) {
@@ -677,11 +677,18 @@ df.posthoc[,2] <- c(paste(x[1:4,1]),2,4,2,4)
 
 fam <- c("XX", "XX",rep(df.families[1:35,j], each=2))
 result <- rbind(df.LRT,df.posthoc,fam)
+
+for (i in 1:p){ 
+  if(Result_adjFam_deletedOlier_NoIntpsel[13,2+((2*i)-1)]=="lognormal")
+    for(k in 5:12){
+      Result_adjFam_deletedOlier_NoIntpsel[k,2+((2*i)-1)] = round(expm1(as.numeric(try1[k,2+((2*i)-1)])),2)#, na.omit==T)
+    }}
+
 View(result)
 
-# write.csv(result,file="Analysis/Silphie_TimeSeries/Results/Result_Log_Negbin_deletedOlier_NoIntpsel.csv")
-# save(result,file="Analysis/Silphie_TimeSeries/Results/Result_Log_Negbin_deletedOlier_NoIntpsel.rda")
-# Result_Log_Negbin_deletedOlier_NoIntpsel <- result
+# write.csv(result,file="Analysis/Silphie_TimeSeries/Results/Result_adjFam_deletedOlier_NoIntpsel.csv")
+# save(result,file="Analysis/Silphie_TimeSeries/Results/Result_adjFam_deletedOlier_NoIntpsel.rda")
+# Result_adjFam_deletedOlier_NoIntpsel <- result
 
 # 5.2 Selected contrasts ####
 #****************************************************************************************
@@ -797,9 +804,87 @@ for(i in 1:p) {
 #  write.table(df.posthocSC, file="Results/ANOVATables/FpR2_All_LMM.csv", append=TRUE, sep=",", dec=".", qmethod="double", col.names=NA)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# 6. Boxplots of original and  fitted values according to the best Models____________####
+
+windows(record=T)
+
+for (i in 1:p) {
+  # Save Plots extern  
+#   mypath <- file.path("Analysis","Silphie_TimeSeries","results","Boxplots_adjFam_delOlier_NoIntpsel",
+#                       paste("ModVal", i,abbreviate(colnames(df.rspX),3)[i], ".pdf", sep = ""))
+#   
+#   pdf(file=mypath)
+  par(mfrow=c(2,3),
+      oma=c(0,0,3,0))
+  
+  df.exp$y <- df.rspX[,i]
+  df.exp2 <- df.exp[outlier[[i]],]
+  F1 <- fitted(ls.bestModels[[i]], type="response")
+  P1 <- predict(ls.bestModels[[i]], type="response")
+  car::Boxplot(F1 ~ df.exp2$age_class)
+  car::Boxplot(F1 ~ df.exp2$samcam)
+  car::Boxplot(F1 ~ df.exp2$ACSC)
+  car::Boxplot(df.exp2$y ~ df.exp2$age_class)
+  car::Boxplot(df.exp2$y ~ df.exp2$samcam)
+  car::Boxplot(df.exp2$y ~ df.exp2$ACSC)
+  title(paste(i,colnames(df.rspX)[i]), outer=TRUE)
+  #dev.off()
+}
+
 
 # Depot _____________________________________________________________________________####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+windows(record=T)
+for(i in 1:p){
+  par(mfrow=c(2,2))
+  df.exp$y <- df.rspX[,i]
+  df.exp2 <- df.exp[outlier[[i]],]
+  df.exp2$ID <- 1:nrow(df.exp2)
+  a <- paste(formula(ls.bestModels[[i]])[3])
+  if("age_class:samcam" %in% unlist(strsplit(a, " "))){
+    M1 <- update(ls.bestModels[[i]], . ~ . + ACSC - age_class - samcam - age_class:samcam)
+    posthoc <- glht(M1, linfct=mcp(ACSC="Tukey"))
+    letters <- cld(posthoc)
+    print(plot(letters, main=colnames(df.rspX)[i]))}
+  else {
+    if("age_class" %in% unlist(strsplit(a, " "))){
+      M1 <- ls.bestModels[[i]]
+      posthoc <- glht(M1, linfct=mcp(age_class="Tukey"))
+      letters <- cld(posthoc)
+      print(plot(letters, main=colnames(df.rspX)[i]))
+    }
+    if("samcam" %in% unlist(strsplit(a, " "))){
+      M1 <- ls.bestModels[[i]]
+      posthoc <- glht(M1, linfct=mcp(samcam="Tukey"))
+      letters <- cld(posthoc)
+      print(plot(letters, main=colnames(df.rspX)[i]))
+  }
+}}
+
+windows(record=T)
+
+for (i in 1:p) {
+ # Save Plots extern  
+    mypath <- file.path("Analysis","Silphie_TimeSeries","results","Boxplots_adjFam_delOlier_NoIntpsel",
+                        paste("ModVal", i,abbreviate(colnames(df.rspX),3)[i], ".pdf", sep = ""))
+    
+    pdf(file=mypath)
+    par(mfrow=c(2,3),
+        oma=c(0,0,3,0))
+    
+  df.exp$y <- df.rspX[,i]
+  df.exp2 <- df.exp[outlier[[i]],]
+  F1 <- fitted(ls.bestModels[[i]], type="response")
+  P1 <- predict(ls.bestModels[[i]], type="response")
+  car::Boxplot(F1 ~ df.exp2$age_class)
+  car::Boxplot(F1 ~ df.exp2$samcam)
+  car::Boxplot(F1 ~ df.exp2$ACSC)
+  car::Boxplot(df.exp2$y ~ df.exp2$age_class)
+  car::Boxplot(df.exp2$y ~ df.exp2$samcam)
+  car::Boxplot(df.exp2$y ~ df.exp2$ACSC)
+  title(paste(i,colnames(df.rspX)[i]), outer=TRUE)
+  dev.off()
+}
 
 # Ease manual code writing for Models
 # v1 <- c()
